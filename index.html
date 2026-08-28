@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>おかしの設計図 / OKASHI BLUEPRINT</title>
+<style>
+:root{
+  --ink:#0d1117; --sub:#6b7280; --line:rgba(13,30,60,.14);
+  --accent:#0b57d0; --bg:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;user-select:none;cursor:crosshair}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:1}
+#rvVid{position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1}
+/* 生成の最後に画面を覆う白。canvasではなくDOMに置くのは、上に載っている文字ごと隠すため */
+#veil{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;
+  z-index:9;pointer-events:none;opacity:0}
+/* 調整パネル（Pキーで開閉）。展示では使わない */
+#tune{position:fixed;right:14px;top:14px;width:344px;max-height:94vh;overflow-y:auto;z-index:20;
+  display:none;background:rgba(255,255,255,.97);border:1px solid #d7dbe2;border-radius:3px;
+  padding:12px 14px 14px;font:11px/1.5 "SF Mono",ui-monospace,monospace;color:#2a3340;
+  box-shadow:0 10px 40px -18px rgba(10,30,60,.5)}
+#tune.on{display:block}
+#tune h4{font-size:10px;letter-spacing:.18em;color:#8b93a1;margin:12px 0 5px;font-weight:400}
+#tune h4:first-child{margin-top:0}
+#tune .r{display:flex;align-items:center;gap:7px;margin:2px 0}
+#tune .r span{flex:0 0 92px;font-size:10.5px}
+#tune .r input{flex:1;height:2px;-webkit-appearance:none;background:#d7dbe2;outline:none}
+#tune .r input::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:#0b57d0;cursor:pointer}
+#tune .r b{flex:0 0 52px;text-align:right;font-weight:400;color:#0b57d0}
+#tune .tl{display:flex;align-items:center;gap:7px;margin-bottom:2px}
+#tune .tl button{flex:0 0 34px;padding:4px 0;font-size:11px}
+#tune .tl input{flex:1;height:2px;-webkit-appearance:none;background:#d7dbe2;outline:none}
+#tune .tl input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:#0b57d0;cursor:pointer}
+#tune .tl b{flex:0 0 40px;text-align:right;font-weight:400;color:#0b57d0}
+#tune .btns{display:flex;gap:6px;margin-top:12px}
+#tune button{flex:1;font:inherit;font-size:10.5px;padding:7px 0;cursor:pointer;
+  border:1px solid #c9ced6;background:#fff;border-radius:2px;color:#2a3340}
+#tune button:hover{border-color:#0b57d0;color:#0b57d0}
+#tune .note{font-size:9.5px;color:#8b93a1;margin-top:8px;line-height:1.6}
+.mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- 四隅のUI ---------- */
+.hud{position:fixed;z-index:5;font-size:10.5px;letter-spacing:.16em;color:var(--sub);pointer-events:none}
+.tl{top:22px;left:26px} .tr{top:22px;right:26px;text-align:right}
+.bl{bottom:104px;left:26px} .br{bottom:104px;right:26px;text-align:right}
+.hud b{display:block;color:var(--ink);font-size:12px;letter-spacing:.24em;margin-bottom:5px;font-weight:800}
+
+/* ---------- 下部バー ---------- */
+.cta{position:fixed;left:0;right:0;bottom:44px;z-index:6;display:flex;justify-content:center;pointer-events:none}
+.cta button{pointer-events:auto;font:inherit;font-size:14px;letter-spacing:.26em;font-weight:700;color:var(--ink);
+  background:none;border:none;padding:14px 6px 16px;cursor:pointer;position:relative}
+.cta button::after{content:'';position:absolute;left:0;right:0;bottom:8px;height:1px;background:var(--ink);
+  transform:scaleX(.28);transform-origin:center;transition:transform .7s cubic-bezier(.16,1,.3,1),opacity .4s}
+.cta button:hover::after{transform:scaleX(1)}
+/* 狭い画面：下端だとお菓子に埋もれる。中央に、押せると分かる程度のガラスの板で置く */
+@media(max-width:820px){
+  .cta{top:0;bottom:0;align-items:center}
+  /* すりガラス。白ベタに見えないよう、透かして・ふちに光を溜めて・ごく薄い水色を差す */
+  .cta button{font-size:13px;letter-spacing:.18em;text-indent:.18em;padding:19px 30px;border-radius:999px;
+    background:linear-gradient(160deg,rgba(255,255,255,.60) 0%,rgba(238,247,255,.34) 46%,rgba(226,240,255,.44) 100%);
+    -webkit-backdrop-filter:blur(22px) saturate(1.9);backdrop-filter:blur(22px) saturate(1.9);
+    border:.5px solid rgba(255,255,255,.9);
+    box-shadow:0 1px 1px rgba(255,255,255,.95) inset,
+               0 -1px 1px rgba(150,180,225,.28) inset,
+               0 1px 2px rgba(20,50,100,.06),
+               0 14px 34px -18px rgba(13,40,90,.34);
+    transition:transform .5s cubic-bezier(.16,1,.3,1), background .4s}
+  .cta button::after{display:none}
+  /* 上ふちの光。ガラスの厚みに見せる */
+  .cta button::before{content:'';position:absolute;left:9%;right:9%;top:.5px;height:42%;border-radius:999px 999px 60% 60%;
+    background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,0));pointer-events:none}
+  .cta button:active{transform:scale(.97);
+    background:linear-gradient(160deg,rgba(255,255,255,.74) 0%,rgba(232,244,255,.52) 100%)}
+}
+.backlink{position:fixed;left:26px;bottom:44px;z-index:7;font:inherit;font-size:11px;letter-spacing:.22em;
+  color:var(--sub);background:none;border:none;cursor:pointer;padding:8px 4px}
+.backlink:hover{color:var(--ink)}
+
+
+
+.meter .track i{position:absolute;top:-2px;width:5px;height:5px;background:var(--accent);border-radius:50%;transition:left .4s cubic-bezier(.2,.8,.2,1)}
+
+
+
+.btn.primary{padding:15px 40px;font-size:13px;letter-spacing:.2em}
+.btn{font:inherit;font-size:11px;letter-spacing:.14em;font-weight:800;padding:10px 18px;
+  border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:.18s}
+.btn:hover{background:var(--ink);color:var(--bg)}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.primary:hover{opacity:.82}
+
+/* ---------- 右パネル（詳細） ---------- */
+.panel{position:fixed;z-index:7;top:0;right:0;width:330px;height:100%;
+  border-left:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(18px);
+  padding:34px 28px;transform:translateX(102%);transition:transform .55s cubic-bezier(.16,1,.3,1);
+  overflow-y:auto}
+.panel.on{transform:none}
+.panel .idx{font-size:10px;letter-spacing:.28em;color:var(--sub)}
+.panel h2{font-size:23px;font-weight:800;margin:8px 0 2px;line-height:1.25}
+.panel .meta{font-size:11px;color:var(--sub);letter-spacing:.06em;margin-bottom:22px}
+.row{margin-bottom:11px}
+.row .l{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;margin-bottom:4px;color:var(--sub)}
+.row .l b{color:var(--ink);font-weight:700}
+.row .t{height:2px;background:var(--line);position:relative}
+.row .t i{position:absolute;left:0;top:0;height:100%;background:var(--accent);
+  transition:width .7s cubic-bezier(.16,1,.3,1)}
+.panel .close{position:absolute;top:26px;right:24px;font-size:19px;color:var(--sub);cursor:pointer;line-height:1}
+
+/* ---------- 全画面オーバーレイ（コンセプト） ---------- */
+.ov{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:8;display:none;
+  background:transparent;cursor:pointer;pointer-events:auto}
+.ov.on{display:flex}
+.ov .in{max-width:820px}
+.ov .k{font-size:10px;letter-spacing:.32em;color:var(--sub);margin-bottom:0}
+#hSpace{flex:none;width:1px}
+.ov h1{font-size:clamp(26px,4.4vw,52px);line-height:1.34;font-weight:800;letter-spacing:.01em}
+.ov .in{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(860px,84vw);text-align:center;display:flex;flex-direction:column;align-items:center}
+.ov .k,.ov .next{opacity:0;transform:translateY(14px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+.ov p{display:block}
+.ov p .ln{display:block;overflow:hidden;white-space:nowrap}
+.ov p .ln i{display:block;font-style:normal;transform:translateY(115%);opacity:0;
+  transition:transform 1.05s cubic-bezier(.16,1,.3,1),opacity .8s ease}
+.ov.rev p .ln i{transform:none;opacity:1}
+.ov.rev .k{opacity:1;transform:none;transition-delay:.15s}
+.ov.rev .next{opacity:.9;transform:none;transition-delay:1.1s}
+.ov p{margin:0;font-size:clamp(13px,1.5vw,16px);line-height:1.95;color:#3c434f;width:100%}
+/* 背後を流れるお菓子に文字が乗ると読めない。文字の周りだけ白を薄く敷く。
+   ただし見出しはこの下（canvas）に描くので、白を敷くのは本文のまわりだけにする。
+   .in 全体に敷くと、見出しが白幕ごしになって灰色に見える */
+.ov .in{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  padding:26px 30px;border-radius:4px;background:none}
+.ov p{position:relative}
+.ov p::before{content:'';position:absolute;left:-40px;right:-40px;top:-34px;bottom:-30px;z-index:-1;
+  background:radial-gradient(ellipse 72% 64% at 50% 50%,
+    rgba(255,255,255,.94) 0%, rgba(255,255,255,.86) 54%, rgba(255,255,255,0) 100%)}
+.ov .next{margin-top:46px;font-size:10.5px;letter-spacing:.24em;color:var(--sub)}
+.yrs{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;margin-top:30px;font-size:11px;color:#3c434f}
+.yrs span{white-space:nowrap}
+.yrs b{font-weight:800}
+
+/* ---------- 生成画面：1問1画面（計測器の佇まい） ---------- */
+.genui{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:6;display:none;pointer-events:none;--cy:#00c2e8}
+.genui.on{display:block}
+body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}   /* 生成画面では元のHUDを隠す */
+.qhead{position:absolute;top:38px;left:44px}
+.qbrand{font-size:14px;font-weight:800;letter-spacing:.26em;color:var(--ink)}
+.qnum{font-size:12px;letter-spacing:.2em;color:var(--sub);margin-top:8px}
+.qnum b{color:var(--cy);font-weight:700}
+.qtrack{position:relative;width:330px;height:1px;background:#c9ced6;margin-top:26px}
+.qtrack i{position:absolute;left:0;top:0;height:1px;background:var(--cy);width:8%;
+  transition:width .75s cubic-bezier(.16,1,.3,1)}
+.qticks{position:absolute;top:-6px;bottom:-6px;left:0;right:0;display:flex;justify-content:space-between}
+.qticks span{position:relative;width:1px;height:13px;background:#c9ced6}
+.qticks span::after{content:attr(data-n);position:absolute;top:17px;left:50%;transform:translateX(-50%);
+  font:400 10px/1 "SF Mono",ui-monospace,monospace;color:#aab1bd;letter-spacing:.06em}
+.qticks span.on{background:var(--cy)}
+.qticks span.on::after{color:var(--cy)}
+.qticks span.on::before{content:'';position:absolute;left:50%;top:6px;width:7px;height:7px;margin-left:-3.5px;
+  border-radius:50%;background:var(--cy)}
+
+.qwrap{position:absolute;left:0;right:0;top:30vh;text-align:center;pointer-events:auto}
+.qtitle{font-size:clamp(26px,3.1vw,38px);font-weight:700;letter-spacing:.04em;margin-bottom:96px;
+  line-height:1.4;white-space:nowrap;max-width:96vw;margin-left:auto;margin-right:auto}
+.qtitle em{font-style:normal;font-weight:400;font-size:.58em;color:var(--sub);
+  letter-spacing:.1em;margin:0 .55em 0 .34em;vertical-align:.06em}
+.qtitle em:last-child{margin-right:0}
+.qval{font-size:11px;letter-spacing:.24em;color:var(--sub);margin-bottom:14px}
+.qcircles{display:flex;justify-content:center;align-items:center;gap:clamp(14px,2.6vw,42px);position:relative}
+.qcircles button{width:clamp(38px,3.4vw,54px);height:clamp(38px,3.4vw,54px);border-radius:50%;
+  border:1px solid var(--ink);background:none;cursor:pointer;position:relative;padding:0;
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1),border-color .3s}
+.qcircles button:hover{transform:scale(1.12);border-color:var(--cy)}
+.qcircles button.on{border-color:var(--ink)}
+.qcircles button.on::after{content:'';position:absolute;left:50%;top:50%;width:11px;height:11px;
+  margin:-5.5px 0 0 -5.5px;border-radius:50%;background:var(--cy);
+  animation:qpop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes qpop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.qaxis{position:relative;margin-top:30px;display:flex;justify-content:space-between;align-items:flex-start;
+  width:min(780px,74vw);margin-left:auto;margin-right:auto;
+  font-size:21px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
+.qaxis span,.qaxis b{font-weight:700}
+.qrule{position:absolute;left:0;right:0;top:-16px;height:9px;
+  background:repeating-linear-gradient(90deg,#c9ced6 0 1px,transparent 1px 32px);
+  border-top:1px solid #dfe3e9}
+.qwrap.out{opacity:0;transform:translateX(-36px);transition:opacity .34s ease,transform .34s cubic-bezier(.4,0,1,1)}
+.qwrap.in{opacity:0;transform:translateX(36px)}
+.qwrap.show{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+
+.qfree input{font:inherit;font-size:12px;letter-spacing:.1em;text-align:center;width:min(320px,70vw);
+  border:none;border-bottom:1px solid #c9ced6;background:none;padding:10px 4px;color:var(--ink);outline:none;transition:border-color .4s}
+.qfree input:focus{border-color:var(--cy)}
+/* 起動ボタン。塗った玉ではなく、他の画面と同じ「細い線と余白」で作る */
+.orb{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);
+  width:296px;height:296px;border-radius:50%;
+  border:1px solid rgba(13,30,60,.20);background:transparent;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  cursor:pointer;pointer-events:auto;font:inherit;color:var(--ink);opacity:0;padding:0;
+  transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+.orb::before{content:'';position:absolute;left:15px;top:15px;right:15px;bottom:15px;
+  border-radius:50%;border:1px dashed rgba(13,30,60,.13)}
+.orb.on{display:flex}
+.orb.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.orb.go{opacity:0;transform:translate(-50%,-50%) scale(1.5)}
+.orb span{font-size:15px;font-weight:700;letter-spacing:.16em;text-indent:.16em;line-height:1.95;
+  text-align:center;pointer-events:none;white-space:nowrap}
+.orb small{font:400 9.5px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.3em;
+  color:var(--cy);text-indent:.3em;pointer-events:none}
+.orb:hover{transform:translate(-50%,-50%) scale(1.03)}
+.orb:hover::before{border-color:rgba(0,194,232,.34)}
+.qback{position:fixed;left:44px;bottom:44px;z-index:7;font:inherit;font-size:11px;letter-spacing:.22em;
+  color:var(--sub);background:none;border:none;cursor:pointer;padding:8px 4px;pointer-events:auto}
+.qback:hover{color:var(--ink)}
+.gres{position:absolute;left:0;right:0;bottom:132px;text-align:center;pointer-events:none;opacity:0;
+  transform:translateY(14px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+.genui.ready .gres{opacity:1;transform:none;pointer-events:auto}
+.gres .gname{font-size:26px;letter-spacing:.18em;font-weight:800;margin-bottom:10px}
+.gres .gcopy{font-size:12px;letter-spacing:.08em;line-height:1.95;color:var(--sub);
+  max-width:min(760px,80vw);margin:0 auto 22px}
+.gqr{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px}
+.qrbox{width:74px;height:74px;background:#0d1117}
+.gqr span{font-size:9.5px;letter-spacing:.24em;color:var(--sub)}
+.qagain{font:inherit;font-size:11px;letter-spacing:.24em;color:var(--cy);background:none;border:none;cursor:pointer;padding:8px}
+.gmeta{position:absolute;left:44px;bottom:86px;font-size:10px;letter-spacing:.16em;color:#aab1bd;pointer-events:none}
+@media(max-width:820px){
+  .qhead{left:20px;top:24px}.qback{left:20px;bottom:28px}
+  .qbrand{display:none}   /* 右上のHUDと重なる。作品名はそちらに出ている */
+  /* 端で切れるより、少し縮めて全部見せる */
+  .qtitle{font-size:min(6.4vw,25px);margin-bottom:56px;letter-spacing:0;white-space:nowrap}
+  .qtitle em{font-size:.58em;margin:0 .30em 0 .18em}
+  /* 9個の円は clamp の下限38pxのままだと 422px になり画面幅を超える */
+  .qcircles{gap:5px}
+  .qcircles button{width:30px;height:30px}
+  .qcircles button.on::after{width:9px;height:9px;margin:-4.5px 0 0 -4.5px}
+  .qaxis{width:94vw;font-size:15px;margin-top:22px}
+  .qtrack{width:min(330px,84vw)}
+  .orb{width:250px;height:250px}
+  .orb span{font-size:13px;letter-spacing:.12em;text-indent:.12em}
+  .ov .in{width:min(860px,88vw)}
+  .gres .gname{font-size:20px}
+  .gres .gcopy{font-size:11.5px;max-width:88vw}
+}
+
+/* ---------- 旧スライダー（未使用） ---------- */
+.gen{display:none!important;position:fixed;left:0;right:330px;bottom:88px;z-index:6;padding:16px 26px 18px;
+  border-top:1px solid var(--line);background:rgba(255,255,255,.92);backdrop-filter:blur(14px);
+  display:none;grid-template-columns:repeat(3,1fr);gap:10px 30px}
+.gen.on{display:grid}
+.gen .s .l{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.12em;color:var(--sub);margin-bottom:3px}
+.gen .s .l b{color:var(--ink)}
+.gen input[type=range]{-webkit-appearance:none;width:100%;height:1px;background:var(--line);outline:none}
+.gen input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:var(--ink);cursor:pointer}
+.hide{display:none!important}
+body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ） */
+@media(max-width:820px){
+  /* bottom:88px のままだと translateY(102%) で隠しきれず、下に帯が残る */
+  .panel{width:100%;height:52%;top:auto;bottom:0;border-left:none;border-top:1px solid var(--line);
+    transform:translateY(101%)}
+  .panel.on{transform:none}
+  .gen{right:0;grid-template-columns:repeat(2,1fr)}
+  .bar{gap:16px;padding:0 14px}.meter:nth-child(n+3){display:none}
+  .hud.bl,.hud.br{display:none}
+  .cta button{font-size:12px;letter-spacing:.18em}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud tl"><b>OKASHI BLUEPRINT</b><span class="mono" id="hIdx">INDEX 00–54 / ACTIVE 00</span></div>
+<div class="hud tr"><b>おかしの設計図</b><span class="mono" id="hTime">--:--:--</span></div>
+<div class="hud bl mono">SCALE 1:100</div>
+<div class="hud br mono" id="hFps">— FPS</div>
+
+<div class="cta" id="cta"><button id="btnGen">まだないおかしを、つくる</button></div>
+<button class="backlink" id="btnBack" style="display:none">もどる</button>
+
+<div class="panel" id="panel">
+  <div class="close" id="pClose">×</div>
+  <div class="idx mono" id="pIdx">NO.00</div>
+  <h2 id="pName">—</h2>
+  <div class="meta mono" id="pMeta">—</div>
+  <div id="pRows"></div>
+  <p style="font-size:11px;line-height:1.9;color:var(--sub);margin-top:22px" id="pNote"></p>
+</div>
+
+<!-- 演出の駆動用。画面には出さない。粒子の居場所を決めるためだけに読む -->
+<video id="rvVid" muted playsinline preload="auto"></video>
+<div id="veil"></div>
+<div id="tune"></div>
+<div class="genui" id="genui">
+  <div class="qhead">
+    <div class="qbrand">OKASHI BLUEPRINT</div>
+    <div class="qnum mono">QUESTION <b id="qNo">01</b> /05</div>
+    <div class="qtrack"><i id="qFill"></i><div class="qticks" id="qTicks"></div></div>
+  </div>
+
+  <div class="qwrap" id="qWrap">
+    <h1 class="qtitle" id="qTitle">どのくらい あまい？</h1>
+    <div class="qval mono" id="qVal">— / 09</div>
+    <div class="qcircles" id="qCircles"></div>
+    <div class="qaxis"><div class="qrule"></div><span id="qL">あまい</span><b id="qR">しょっぱい</b></div>
+  </div>
+
+  <button class="orb" id="orbStart"><span>まだないおかしを<br>つくる</span><small>TAP TO BEGIN</small></button>
+  <button class="orb" id="qMake"><span>新たなお菓子を<br>作り出す</span><small>TAP TO GENERATE</small></button>
+  <button class="qback" id="qBack">もどる</button>
+
+  <div class="gres" id="gRes">
+    <div class="gname" id="gName"></div>
+    <div class="gcopy" id="gCopy"></div>
+    <button class="qagain" id="qAgain">もう一度つくる</button>
+  </div>
+  <div class="gmeta mono" id="gMeta"></div>
+</div>
+</div>
+</div>
+
+<div class="ov" id="ov"><div class="in">
+  <div class="k mono" id="ovK">CONCEPT</div>
+  <div id="hSpace" aria-hidden="true"></div>
+  <h1 id="ovH" style="display:none"></h1>
+  <p id="ovP"></p>
+  <div class="next mono">画面をタップして続ける →</div>
+</div></div>
+
+<script src="reveal_src.js"></script>
+<script src="picker.js"></script>
+<script src="prompt.js"></script>
+<script src="particles.js"></script>
+<script src="data.js"></script>
+<script>
+/* ============================================================
+   おかしの設計図 — 描画エンジン
+   ・54点のパッケージ画像を白い電脳空間に浮遊させる
+   ・各画像から抽出した190個の粒子シードを実際に animate する
+   ・粒子＝画像そのものの構造（PARTICLE_DATA は画像から実測）
+   ============================================================ */
+const C = document.getElementById('c'), X = C.getContext('2d');
+let W=0,H=0,DPR=1, T=0, lastTs=0, fps=60;
+let MODE='FLOAT';                 // FLOAT / DETAIL / CONCEPT / GEN
+let snacks=[], images=[], loaded=0;
+let selected=null, dust=[];
+
+const NOISE = ['#00c2ff','#ff2ea6','#ffd400','#7c4dff','#00e07a'];
+/* 侵食用の使い回しバッファ（画像に穴を開けてから合成するため） */
+const TRIG_N=2048, SINT=new Float32Array(TRIG_N), COST=new Float32Array(TRIG_N);
+for(let i=0;i<TRIG_N;i++){ const a=i/TRIG_N*6.283185307; SINT[i]=Math.sin(a); COST[i]=Math.cos(a); }
+const fsin=x=>SINT[((x*325.949+0.5)|0)&(TRIG_N-1)];   // x はラジアン
+const fcos=x=>COST[((x*325.949+0.5)|0)&(TRIG_N-1)];
+const SC=document.createElement('canvas'); SC.width=SC.height=256;
+const SX=SC.getContext('2d',{willReadFrequently:false});
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+/* ---------- リサイズ ---------- */
+let lastW=0,lastH=0;
+function resize(){
+  W=innerWidth; H=innerHeight; DPR=Math.min(devicePixelRatio||1,1.5);
+  C.width=W*DPR; C.height=H*DPR; X.setTransform(DPR,0,0,DPR,0,0);
+  layout();
+  if(MODE==='CONCEPT' && (W!==lastW||H!==lastH)){        // 幅が実際に変わった時だけ組み直す
+    snacks.forEach(s2=>{ s2.tw=Math.min(W*0.105,H*0.17); });
+    if(kinText){ try{
+      const t=kinT; kinSample(kinText); kinT=t; kinReflow(false);
+      if(t>1.15) kin.forEach(p=>{ if(p.live){ p.x=p.tx; p.y=p.ty; } });   // 出来上がった文字は崩さない
+    }catch(e){} }
+  }
+  lastW=W; lastH=H;
+}
+
+/* ============================================================
+   Snack
+   ============================================================ */
+class Snack{
+  constructor(i){
+    const d = OKASHI[i] || {name:'—',f:'bag',y:0,v:[50,50,0,0,50,50,50,50,50]};
+    const pd = (typeof PARTICLE_DATA!=='undefined' && PARTICLE_DATA[i]) || null;
+    this.i=i; this.data=d; this.ar = pd? pd.ar : 0.8;
+    this.img=null;
+    this.x=0; this.y=0; this.w=140; this.baseW=140;
+    this.tx=0; this.ty=0; this.tw=140;      // 目標値
+    this.phase=Math.random()*Math.PI*2;
+    this.spin=rnd(.55,.95);
+    this.alpha=1; this.talpha=1;
+    this.disp=1;  this.tdisp=1;             // 粒子の拡散度
+    this.erode=1; this.terode=1;            // 画像本体の侵食の強さ
+    this.esc=0;                             // 離脱（コンセプト時に散る）
+    this.evx=0; this.evy=0;
+
+    // 粒子
+    const p = pd? pd.p : [];
+    const n = p.length;
+    this.n=n;
+    this.px=new Float32Array(n); this.py=new Float32Array(n);
+    this.pe=new Uint8Array(n); this.ph=new Float32Array(n); this.ps=new Float32Array(n);
+    this.pc=new Array(n);           // 色は文字列で先に作る（毎フレームの文字列連結が最大のコスト）
+    for(let k=0;k<n;k++){
+      this.px[k]=p[k][0]/1000-0.5; this.py[k]=p[k][1]/1000-0.5;
+      this.pc[k]='rgb('+p[k][2]+','+p[k][3]+','+p[k][4]+')';
+      this.pe[k]=p[k][5];
+      this.ph[k]=Math.random(); this.ps[k]=rnd(.55,2.1);
+    }
+  }
+  get h(){ return this.w/this.ar; }
+
+  update(dt){
+    this.x=lerp(this.x,this.tx,1-Math.pow(.0016,dt));
+    this.y=lerp(this.y,this.ty,1-Math.pow(.0016,dt));
+    this.w=lerp(this.w,this.tw,1-Math.pow(.0016,dt));
+    this.alpha=lerp(this.alpha,this.talpha,1-Math.pow(.004,dt));
+    this.disp=lerp(this.disp,this.tdisp,1-Math.pow(.02,dt));
+    this.erode=lerp(this.erode,this.terode,1-Math.pow(.02,dt));
+    if(this.esc){ this.tx+=this.evx*dt; this.ty+=this.evy*dt; this.x+=this.evx*dt; this.y+=this.evy*dt; }
+  }
+
+  draw(){
+    if(this.alpha<0.012) return;
+    const w=this.w, h=this.h;
+    if(this.x+w<-60||this.x-w>W+60) return;
+
+    // ふわふわ浮遊 ＋ 左右に±10度
+    const bob = Math.sin(T*0.9*this.spin + this.phase)*w*0.035;
+    const rot = Math.sin(T*0.62*this.spin + this.phase*1.7) * 10 * Math.PI/180;
+
+    X.save();
+    X.translate(this.x, this.y+bob);
+    X.rotate(rot);
+    X.globalAlpha=this.alpha;
+
+    // 本体。写真をそのまま貼らず、毎フレーム「侵食」してから合成する。
+    // 穴は画像から実測した縁の粒子座標に開くので、崩れがシルエットに沿う。
+    if(this.img){
+      if(w<=260){
+        // 小さく表示されている間は侵食を省く（1〜2pxの穴は見えないのに、45個ぶんのオフスクリーン処理が最も重い）
+        X.globalCompositeOperation='multiply';
+        X.filter='brightness(1.07) contrast(1.05)';
+        X.drawImage(this.img,-w/2,-h/2,w,h);
+        X.filter='none';
+        X.globalCompositeOperation='source-over';
+      } else {
+        const pad=Math.ceil(w*0.10), sw=Math.ceil(w)+pad*2, sh=Math.ceil(h)+pad*2;
+        if(SC.width<sw||SC.height<sh){ SC.width=Math.max(SC.width,sw); SC.height=Math.max(SC.height,sh); }
+        SX.clearRect(0,0,sw,sh);
+        SX.filter='brightness(1.07) contrast(1.05)';
+        SX.drawImage(this.img,pad,pad,w,h);
+        SX.filter='none';
+        SX.globalCompositeOperation='destination-out';
+        const er=this.erode, step=3;
+        for(let k=0;k<this.n;k+=step){
+          const ph=this.ph[k], edge=this.pe[k];
+          const o=fsin(T*1.9+ph*23.3)*0.5+0.5;
+          const th=edge?0.10:0.55;
+          if(o<th) continue;
+          const g=(o-th)/(1-th);
+          const r=(edge?0.22:0.16)*(1+g*1.5)*er;
+          if(r<0.35) continue;
+          const gx=pad+w/2+this.px[k]*w+fcos(ph*6.283+T*0.6)*w*0.012*er;
+          const gy=pad+h/2+this.py[k]*h+fsin(ph*6.283+T*0.6)*w*0.012*er;
+          SX.globalAlpha=Math.min(0.35+g*0.75,1);
+          SX.fillRect(gx-r,gy-r,r*2,r*2);
+        }
+        SX.globalAlpha=1; SX.globalCompositeOperation='source-over';
+        X.globalCompositeOperation='multiply';
+        X.drawImage(SC,0,0,sw,sh,-w/2-pad,-h/2-pad,sw,sh);
+        X.globalCompositeOperation='source-over';
+      }
+    }
+
+    // 粒子（パラパラと明滅しながら、縁ほど外へ飛ぶ）
+    const d=this.disp, sc=w, sch=sc/this.ar;
+    const pstep = w>300 ? 1 : (w>200 ? 2 : 3);   // 表示サイズに応じて間引く
+    const tf=T*7.5, tt=(T*4)|0, ta=T*0.7, tr=T*1.4;
+    for(let k=0;k<this.n;k+=pstep){
+      const ph=this.ph[k];
+      const f=(tf+ph*11)%1;
+      let a = f<0.42?1 : f<0.62?0.42 : f<0.78?0.12 : 0;
+      if(a<=0) continue;
+      const edge=this.pe[k];
+      const spread = d*(edge?1.9:0.55);
+      const ang = ph*6.283+ta;
+      const rr  = (fsin(tr+ph*9)*0.5+0.5)*spread + (fsin(T*3.1+ph*41)*0.5+0.5)*0.55;
+      const gx = this.px[k]*sc + fcos(ang)*rr*sc*0.055 + fsin(T*2.3+ph*17)*sc*0.006;
+      const gy = this.py[k]*sch + fsin(ang)*rr*sc*0.055 + fcos(T*2.7+ph*29)*sc*0.006;
+      const s = this.ps[k]*(1+d*0.25);
+      X.globalAlpha = a*this.alpha*(edge?0.95:0.6);
+      X.fillStyle = ((k*7+tt)%53)===0 ? NOISE[k%5] : this.pc[k];
+      X.fillRect(gx-s/2, gy-s/2, s, s);
+    }
+    X.restore();
+    X.globalAlpha=1;
+  }
+
+  hit(mx,my){
+    const w=this.w,h=this.h;
+    return mx>this.x-w*0.55 && mx<this.x+w*0.55 && my>this.y-h*0.55 && my<this.y+h*0.55;
+  }
+}
+
+/* ============================================================
+   レイアウト
+   ============================================================ */
+const ROWS=4;
+let rowSpan=[], rowDir=[], rowY=[], rowSpeed=[], rowCount=[], colCount=1;
+function layout(){
+  const base = W<820 ? Math.min(H*0.115, W*0.215) : Math.min(H*0.155, W*0.115);
+  rowCount=new Array(ROWS).fill(0);
+  snacks.forEach((s,i)=>{ s.row=i%ROWS; s.slot=rowCount[s.row]++; });
+  // 狭い画面は上2列・下2列に分け、中央にボタンの居場所を空ける。
+  // ボタンも1列と数える。ただし中心を等間隔に並べるとボタンは絵より背が低いぶん
+  // 上下だけ余白が空いて見えるので、「絵とボタンの隙間」が列どうしの隙間と
+  // 同じ幅になる距離を計算して置く
+  let mRow=[0,0,0,0];
+  if(W<820){
+    const cy=H*0.5;
+    const bh=($('btnGen')&&$('btnGen').offsetHeight)||56;   // ボタンの実寸
+    const sh=base*1.24;                                     // 絵の見た目の高さ
+    const gap=H*0.148;                                      // 列どうしの間隔
+    const d=Math.max(gap*0.60, gap-sh*0.5+bh*0.5);          // ボタン⇔隣の列
+    mRow=[cy-d-gap, cy-d, cy+d, cy+d+gap];
+  }
+  for(let r=0;r<ROWS;r++){
+    rowY[r] = W<820 ? mRow[r] : H*(0.155+r*0.205);
+    rowDir[r]=r%2?1:-1;
+    rowSpeed[r]=(9+r*2.4);
+    // 行ごとの実数で間隔を決める（全行共通の割り算にすると端に1マス分の穴が空く）
+    rowSpan[r]=Math.max(rowCount[r],1)*base*(W<820?2.35:1.85);   // 狭い画面は間隔を広げて重なりを防ぐ
+  }
+  snacks.forEach(s=>{
+    s.baseW=base*rnd(0.86,1.14);
+    if(MODE==='FLOAT'){ s.tw=s.baseW; s.talpha=1; s.tdisp=1; }
+  });
+}
+
+/* ============================================================
+   浮遊ダスト（画面全体の電子ノイズ）
+   ============================================================ */
+function initDust(){
+  dust=[];
+  for(let i=0;i<570;i++){
+    dust.push({x:Math.random()*W,y:Math.random()*H,
+      vx:rnd(-6,6),vy:rnd(-4,4),s:rnd(.6,1.8),ph:Math.random(),
+      c: Math.random()<0.28 ? NOISE[(Math.random()*NOISE.length)|0] : 'rgba(20,40,80,.55)'});
+  }
+}
+function drawDust(dt){
+  for(const d of dust){
+    d.x+=d.vx*dt; d.y+=d.vy*dt;
+    if(d.x<0)d.x+=W; if(d.x>W)d.x-=W; if(d.y<0)d.y+=H; if(d.y>H)d.y-=H;
+    const f=(T*5+d.ph*9)%1;
+    const a=f<0.5?0.5:f<0.7?0.2:0;
+    if(a<=0)continue;
+    X.globalAlpha=a; X.fillStyle=d.c;
+    X.fillRect(d.x,d.y,d.s,d.s);
+  }
+  X.globalAlpha=1;
+}
+
+/* ============================================================
+   背景（グリッド＋レティクル）
+   ============================================================ */
+function drawBG(){
+  X.fillStyle='#ffffff'; X.fillRect(0,0,W,H);   // AI生成画像の背景と完全に一致させる
+  X.strokeStyle='rgba(13,40,90,.035)'; X.lineWidth=1;
+  const gs=62;
+  X.beginPath();
+  for(let x=gs;x<W;x+=gs){X.moveTo(x+.5,0);X.lineTo(x+.5,H);}
+  for(let y=gs;y<H;y+=gs){X.moveTo(0,y+.5);X.lineTo(W,y+.5);}
+  X.stroke();
+  // レティクル
+  X.strokeStyle='rgba(13,30,60,.22)'; X.lineWidth=1;
+  const m=26,L=13;
+  const pts=[[m,m],[W-m,m],[m,H-114],[W-m,H-114],[W/2,m],[W/2,H-114]];
+  X.beginPath();
+  for(const[px,py]of pts){X.moveTo(px-L,py);X.lineTo(px+L,py);X.moveTo(px,py-L);X.lineTo(px,py+L);}
+  X.stroke();
+}
+
+/* ============================================================
+   メインループ
+   ============================================================ */
+function tick(dt){
+  drawBG();
+  drawDust(dt);
+  if(MODE==='FLOAT'||MODE==='DETAIL'||MODE==='CONCEPT'){
+    for(const s of snacks){
+      if(MODE==='CONCEPT'){
+        const span=colCount*Math.min(W*0.105,H*0.17)*4.2;   // 間隔を広げる
+        const dir=s.col? 1 : -1;                       // 左列は上へ、右列は下へ
+        let sy=(s.cslot*span/Math.max(colCount,1) + T*26*dir);
+        sy=((sy%span)+span)%span;
+        s.tx=s.col? W*0.90 : W*0.10;
+        s.ty=-span*0.1+sy*(H+span*0.2)/span;
+        if(Math.abs(s.ty-s.y)>H*0.5){ s.y=s.ty; s.x=s.tx; }
+      }
+      if(MODE==='FLOAT'){
+        const span=rowSpan[s.row];
+        let sx=(s.slot*span/Math.max(rowCount[s.row],1) + T*rowSpeed[s.row]*rowDir[s.row]);
+        sx=((sx%span)+span)%span;
+        s.tx=-span*0.12+sx*(W+span*0.24)/span;
+        s.ty=rowY[s.row];
+        if(!s.snapped){ s.x=s.tx; s.y=s.ty; s.snapped=true; }
+        if(Math.abs(s.tx-s.x)>W*0.5){ s.x=s.tx; }
+      }
+      s.update(dt);
+    }
+    for(const s of snacks) if(s!==selected) s.draw();
+    if(selected) selected.draw();
+  }
+  if(MODE==='CONCEPT') kinDraw(dt);
+  if(MODE==='GEN'){
+    // 結果の文字（名前・説明・もう一度つくる）は RESULT の時だけ出す。
+    // どの経路で ready が付いても、ここで必ず取り消される
+    if(gStep!=='RESULT' && $('genui').classList.contains('ready')) $('genui').classList.remove('ready');
+    if(rvOn){
+      const done=revealDraw(dt);
+      // 白が満ちきってから下に置く。立ち上がりの間に出すと、白より先に見えてしまう
+      if(rvFlash>=RVP.wIn && aiImg) drawGenerated(dt);
+      if(done){ $('genui').classList.add('ready'); gResult(); }
+    }
+    else if(gStep==='RESULT'){ gShow=1; if(aiImg) drawGenerated(dt); drawFlash(dt); }
+    else { orbDust(); qBurst(); }
+    drawOrbFx(dt);
+  }
+  updateHUD();
+}
+let seeking=false;
+function frame(ts){
+  if(seeking){ tick(0); requestAnimationFrame(frame); return; }   // 停止中も再描画し続ける
+  if(!lastTs)lastTs=ts;
+  let dt=Math.min((ts-lastTs)/1000,.05); lastTs=ts; T+=dt;
+  fps=lerp(fps,1/Math.max(dt,.001),.05);
+  tick(dt);
+  requestAnimationFrame(frame);
+}
+/* 検証用：?seek=2.5 でその時刻まで固定ステップで進めて停止する */
+function seekTo(sec){
+  seeking=true; requestAnimationFrame(frame); const dt=1/20;   // 粒子が増えたので粗いステップで進める（検証専用）
+  for(let t=0;t<sec;t+=dt){ T+=dt; tick(dt); }
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+const $=id=>document.getElementById(id);
+let sparkVals=new Array(44).fill(.5);
+function updateHUD(){
+  const d=new Date();
+  $('hTime').textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+  $('hFps').textContent=Math.round(fps)+' FPS';
+  const active=snacks.filter(s=>s.x>-40&&s.x<W+40).length;
+  $('hIdx').textContent='INDEX 01–'+String(snacks.length).padStart(2,'0')+' / ACTIVE '+String(active).padStart(2,'0');
+
+
+}
+
+/* ============================================================
+   詳細パネル
+   ============================================================ */
+function openDetail(s){
+  MODE='DETAIL'; selected=s;
+  const panelW = innerWidth>820 ? 330 : 0;
+  s.tx=(W-panelW)/2; s.ty=(H-88)*0.46;
+  s.tw=Math.min((W-panelW)*0.42,(H-88)*0.52*s.ar);
+  s.tdisp=2.9; s.terode=2.8; s.talpha=1;
+  for(const o of snacks) if(o!==s){ o.talpha=.10; o.tdisp=1; o.terode=1; }
+  const d=s.data;
+  $('pIdx').textContent='NO.'+String(s.i+1).padStart(2,'0')+' / '+(FORMJA[d.f]||'—');
+  $('pName').textContent=d.name;
+  const age=d.y? (2026-d.y)+'年 愛されている' : '発売年 未確認';
+  $('pMeta').textContent=(d.y? d.y+'年発売 — ':'')+age;
+  $('pRows').innerHTML='';
+  AXES.forEach((a,k)=>{
+    const v=d.v[k];
+    const el=document.createElement('div'); el.className='row';
+    el.innerHTML='<div class="l"><span>'+AXJA[k]+' <span class="mono" style="opacity:.5">'+AXEN[k]+'</span></span><b class="mono">'+v+'</b></div><div class="t"><i style="width:0%"></i></div>';
+    $('pRows').appendChild(el);
+    requestAnimationFrame(()=>{el.querySelector('i').style.width=v+'%';});
+  });
+  $('pNote').textContent = '味の数値がそのままこの形の粒子構造を決めている。粒子は画像から実測した'+s.n+'点。';
+  $('panel').classList.add('on');
+  $('btnBack').style.display='';
+}
+function closeDetail(){
+  MODE='FLOAT'; selected=null;
+  for(const o of snacks){ o.talpha=1; o.tdisp=1; o.terode=1; o.tw=o.baseW; }
+  $('panel').classList.remove('on');
+  $('btnBack').style.display='none';
+}
+
+/* ============================================================
+   コンセプト（散らばる → 2画面）
+   ============================================================ */
+const PAGES=[
+ {k:'CONCEPT 01 / 03',
+  h:'日本人は貧しくても、\nお菓子だけは削らなかった。',
+  p:'家計に占める菓子の割合は、昭和40年から平成20年まで約6%で動かなかった。収入が減っても、菓子の支出だけは減らない。お菓子は嗜好品ではなく、生活の一部として組み込まれている。'},
+ {k:'CONCEPT 02 / 03',
+  h:'棚に並ぶ定番は、\n半世紀前に生まれた。',
+  p:'ベビースターは1959年、ポッキーは1966年。いま当たり前に手に取るものは、親が子どもだった頃に設計されている。子どもの頃に食べたものが、その人にとっての「お菓子」の定義になるからだ。'},
+ {k:'CONCEPT 03 / 03',
+  h:'では、50年後の定番を\n君は作り出せるか。',
+  p:'あまいか、しょっぱいか。ザクザクか、とろけるか。5回の選択で味が決まると、そのお菓子の形も決まる。まだ世の中にない一点が、ここに現れる。'}
+];
+let page=0;
+function startConcept(){
+  MODE='CONCEPT';
+  if(!W||!H) resize();
+  // 中央を空け、左右2列に振り分けて縦に流す
+  snacks.forEach((s,i)=>{
+    s.esc=0; s.col=i%2; s.cslot=(i/2)|0;
+    s.talpha=0.95; s.tdisp=1.2; s.terode=1.1;
+    s.tw=Math.min(W*0.105,H*0.17);
+  });
+  colCount=Math.ceil(snacks.length/2);
+  page=0; setTimeout(showPage,520);
+  $('cta').style.display='none';
+  $('btnBack').style.display='';
+}
+function showPage(){
+  const p=PAGES[page];
+  $('ovK').textContent=p.k; $('ovH').textContent=p.h;
+  $('ov').classList.add('on');          // 先に表示しないと本文の実寸が測れない（幅0で折り返しが壊れる）
+  {
+    const box0=$('ovP');
+    // 折り返しは「実際に描かれるフォント」と「実際の本文の幅」で測る。
+    // 推定値で測ると .in の padding のぶんだけ広く見積もり、右端が切れる
+    const cs=getComputedStyle(box0);
+    KX.font=(cs.fontWeight||'400')+' '+cs.fontSize+' '+cs.fontFamily;
+    const maxW=Math.max(120,(box0.clientWidth||Math.min(W*0.78,780))-2);
+    const lines=[]; let cur='';                      // 実測幅で折り返す
+    for(const ch of p.p){
+      const nobrk='。、」）』！？・';                 // 句読点を行頭に落とさない
+      if(!nobrk.includes(ch) && KX.measureText(cur+ch).width>maxW && cur){ lines.push(cur); cur=''; }
+      cur+=ch;
+      if(ch==='。' && KX.measureText(cur).width>maxW*0.55){ lines.push(cur); cur=''; }
+    }
+    if(cur) lines.push(cur);
+    const box=$('ovP'); box.textContent='';
+    lines.forEach((l,i)=>{
+      const w=document.createElement('span'); w.className='ln';
+      const inner=document.createElement('i'); inner.textContent=l;
+      inner.style.transitionDelay=(1.05+i*0.12)+'s';
+      w.appendChild(inner); box.appendChild(w);
+    });
+  }
+  try{ kinSample(p.h.replace(/。$/,'。').replace(/、/g,'、\n').split('\n').reduce((a,l)=>{
+    if(!a.length) return [l];
+    if((a[a.length-1]+l).length<=14){ a[a.length-1]+=l; } else a.push(l);
+    return a;},[]).join('\n')); }catch(e){ console.warn('kin',e); kinOn=false; }
+  kinReflow(true);  // canvasで描く見出しのぶんDOMに空きを作り、実測位置に合わせる
+  $('ov').classList.remove('rev'); requestAnimationFrame(()=>$('ov').classList.add('rev'));
+}
+$('ov').onclick=()=>{
+  page++;
+  if(page<PAGES.length){ showPage(); }
+  else { $('ov').classList.remove('on'); kinOn=false; startGen(); }
+};
+
+
+/* ============================================================
+   コンセプト見出し ── 散った粒子が集まって文字になる
+   文字を一度canvasに描いて点群化し、既存の粒子をそこへ吸い寄せる。
+   装飾ではなく、作品と同じ粒子エンジンで文字を作っている。
+   ============================================================ */
+const KC=document.createElement('canvas'), KX=KC.getContext('2d',{willReadFrequently:true});
+let kin=[], kinOn=false, kinT=0, kinText='', kinFs=0, kinOx=0, kinOy=0, kinLh=0;
+function kinRebase(reset){
+  kin.forEach(p=>{ if(!p.live) return;
+    p.tx = kinOx + p.lx; p.ty = kinOy + p.ly;
+    if(reset){ const a=p.ang, r=Math.max(W,H)*p.rad;
+      p.x=p.tx+Math.cos(a)*r; p.y=p.ty+Math.sin(a)*r*0.6; }
+  });
+  if(reset) kinT=0;               // リサイズでは進行度を巻き戻さない
+}
+// 見出しの位置だけ測り直す（文字の組み直しはしない）
+function kinReflow(reset){
+  if(!KC.height) return;
+  $('hSpace').style.height=(KC.height+74)+'px';
+  kinOy=$('hSpace').getBoundingClientRect().top+30;
+  kinOx=Math.round((W||innerWidth||1280)*0.5-KC.width*0.5);
+  kinRebase(reset);
+}
+function kinSample(text){
+  if(!text) return;
+  const VW=W||innerWidth||1280;
+  const lines=text.split('\n');
+  const KFONT=w=>w+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';
+  let fs=Math.max(20, Math.min(VW*0.058, 58));
+  // 画面幅からはみ出したら、はみ出したぶんだけ字を小さくする。
+  // 中央寄せなので、はみ出しは必ず左右両方で切れる
+  const measure=s=>{ KX.font='800 '+KFONT(s); return Math.max(...lines.map(l=>KX.measureText(l).width)); };
+  const limit=VW-Math.max(28,VW*0.075)*2;
+  let wmax=measure(fs);
+  if(wmax>limit){ fs=Math.max(15,fs*limit/wmax); wmax=measure(fs); }
+  const lh=fs*1.34;
+  KC.width=Math.ceil(wmax)+8; KC.height=Math.ceil(lh*lines.length+fs*0.5);
+  KX.clearRect(0,0,KC.width,KC.height);
+  KX.fillStyle='#000'; KX.strokeStyle='#000';
+  KX.font='800 '+KFONT(fs);
+  KX.textBaseline='top';
+  // 800 のウエイトを持たない書体だと線が細く、白地では灰色に見える。
+  // 同色で縁取りして、太さを実体として与える
+  KX.lineJoin='round'; KX.lineWidth=Math.max(1,fs*0.046);
+  lines.forEach((l,i)=>{ KX.strokeText(l,0,i*lh); KX.fillText(l,0,i*lh); });
+  const d=KX.getImageData(0,0,KC.width,KC.height).data, pts=[];
+  const step=Math.max(2,Math.round(fs/22));          // 密度を上げる
+  for(let y=0;y<KC.height;y+=step)for(let x=0;x<KC.width;x+=step){
+    if(d[(y*KC.width+x)*4+3]>105) pts.push([x,y]);
+  }
+  const ox=Math.max(VW*0.05, VW*0.5-KC.width*0.5);
+  const VH=H||innerHeight||720;
+  const oy=Math.max(VH*0.10, VH*0.46-lh*lines.length-72);
+  kinText=text; kinFs=fs; kinOx=ox; kinOy=oy; kinLh=lh;
+  while(kin.length<pts.length) kin.push({x:0,y:0,tx:0,ty:0,ph:Math.random(),c:'#0d1117',s:1,live:false});
+  kin.forEach(p=>p.live=false);
+  pts.forEach((q,i)=>{
+    const p=kin[i];
+    p.lx=q[0]; p.ly=q[1]; p.tx=ox+q[0]; p.ty=oy+q[1]; p.live=true;
+    p.ang=Math.random()*6.283; p.rad=0.42+Math.random()*0.35;
+    p.delay=(q[0]/Math.max(KC.width,1))*0.42;        // 左から順に立ち上がる
+    const a=p.ang, r=Math.max(W,H)*p.rad;
+    p.x=p.tx+Math.cos(a)*r; p.y=p.ty+Math.sin(a)*r*0.6;
+    p.ph=Math.random(); p.s=rnd(1.0,2.3);
+    p.c = '#0d1117';   // 文字は必ず黒。読みやすさを最優先する
+  });
+  kinOn=true; kinT=0;
+}
+function kinDraw(dt){
+  if(!kinOn) return;
+  kinT+=dt;
+  // 収束しきったら、粒子ではなく黒のベタ文字に置き換える（点々だと読みにくい）
+  const solid = Math.max(0, Math.min(1, (kinT-1.15)/0.55));
+  if(solid>0){
+    X.save();
+    X.globalAlpha=solid;
+    X.fillStyle='#0b1016'; X.strokeStyle='#0b1016';
+    X.font='800 '+kinFs+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';
+    X.textBaseline='top'; X.lineJoin='round'; X.lineWidth=Math.max(1,kinFs*0.046);
+    kinText.split('\n').forEach((l,i)=>{ X.strokeText(l,kinOx,kinOy+i*kinLh); X.fillText(l,kinOx,kinOy+i*kinLh); });
+    X.restore();
+    if(solid>=1) return;                 // 完全に文字になったら粒子は描かない
+  }
+  const k=1-Math.pow(0.0009,dt);           // 吸い寄せの強さ
+  for(const p of kin){
+    if(!p.live){ p.x+=(p.x-W/2)*dt*0.9; p.y+=(p.y-H/2)*dt*0.9; continue; }
+    if(kinT<p.delay) continue;                       // 左から順に動き出す
+    p.x+=(p.tx-p.x)*k; p.y+=(p.ty-p.y)*k;
+    const d2=Math.abs(p.tx-p.x)+Math.abs(p.ty-p.y);
+    // 飛んでいる間だけ明滅させ、到着したら完全に静止させる（チリチリすると文字が読めない）
+    const a = (d2>3 ? (0.35+((kinT*6+p.ph*11)%1<0.6?0.5:0.1)) : 1) * (1-solid);
+    X.globalAlpha=a; X.fillStyle=p.c;
+    X.fillRect(p.x-p.s/2, p.y-p.s/2, p.s, p.s);
+  }
+  X.globalAlpha=1;
+}
+
+/* ============================================================
+   ジェネレーター
+   ============================================================ */
+const G={sweet:72,salt:16,spicy:6,sour:58,umami:12,hard:28,crisp:20,creamy:62,grain:56,form:'pillow'};
+let genPts=null, genPhase=null, genSize=null, genCanvas=null;
+const COL={sweet:[255,92,147],salt:[30,111,217],spicy:[232,42,30],sour:[245,197,24],umami:[122,75,34]};
+
+function silhouette(f){
+  switch(f){
+    case"cup":   return"M60,32 L140,32 L123,172 L77,172 Z";
+    case"box":   return"M52,26 L148,26 L148,174 L52,174 Z";
+    case"stick": return"M82,18 L118,18 L118,182 L82,182 Z";
+    case"pillow":return"M28,72 L58,58 L142,58 L172,72 L172,128 L142,142 L58,142 L28,128 Z";
+    case"tube":  return"M72,26 L128,26 A16,16 0 0 1 128,42 L128,158 A16,16 0 0 1 128,174 L72,174 A16,16 0 0 1 72,158 L72,42 A16,16 0 0 1 72,26 Z";
+    default:{    // bag（上下ギザ）
+      const x0=36,x1=164,yT=42,yB=158,t=10,w=(x1-x0)/t;
+      let d=`M${x0},${yT+9}`;
+      for(let i=0;i<t;i++) d+=` L${x0+w*(i+.5)},${yT} L${x0+w*(i+1)},${yT+9}`;
+      d+=` L${x1},${yB-9}`;
+      for(let i=t;i>0;i--) d+=` L${x0+w*(i-.5)},${yB} L${x0+w*(i-1)},${yB-9}`;
+      return d+" Z";
+    }
+  }
+}
+/* 数値 → 図形 → 粒子。形はプログラムが決める（AIではない）。 */
+function buildGenerated(){
+  const S=240, off=document.createElement('canvas'); off.width=off.height=S;
+  const o=off.getContext('2d',{willReadFrequently:true});
+  o.scale(S/200,S/200);
+  const p=new Path2D(silhouette(G.form));
+  o.save(); o.clip(p);
+
+  const TA=['sweet','salt','spicy','sour','umami'];
+  const tw=TA.map(k=>Math.max(isFinite(G[k])?G[k]:0,0)), tS=tw.reduce((a,b)=>a+b,0)||1;
+  const C=k=>{const c=COL[k];return 'rgb('+c[0]+','+c[1]+','+c[2]+')'};
+  const mixCol=(a,b,t)=>{const x=COL[a],y=COL[b];
+    return 'rgb('+Math.round(x[0]+(y[0]-x[0])*t)+','+Math.round(x[1]+(y[1]-x[1])*t)+','+Math.round(x[2]+(y[2]-x[2])*t)+')'};
+
+  /* --- 1. 色場：甘さと塩の比率で、面の分割位置が動く --- */
+  const sw=G.sweet, sl=G.salt, split=200*(sw/(sw+sl+1));
+  const g1=o.createLinearGradient(0,0,0,200);
+  g1.addColorStop(0, C(sw>=sl?'sweet':'salt'));
+  g1.addColorStop(Math.max(0.05,Math.min(0.95,split/200)), mixCol(sw>=sl?'sweet':'salt', sw>=sl?'salt':'sweet',0.5));
+  g1.addColorStop(1, C(sw>=sl?'salt':'sweet'));
+  o.globalAlpha=0.16; o.fillStyle=g1; o.fillRect(0,0,200,200); o.globalAlpha=1;
+
+  /* --- 2. 主構造：食感3軸がそれぞれ別の造形規則を持ち、重みで重なる --- */
+  const gg=isFinite(G.grain)?G.grain:50;
+  const unit = 6 + Math.pow(gg/100,1.25)*44;      // ひと粒の大きさが全構造のスケールを決める
+
+  // パリパリ = 水平の層
+  const nCrisp = Math.round(G.crisp/100 * (200/Math.max(unit*0.55,4)));
+  for(let i=0;i<nCrisp;i++){
+    const y=(i+0.5)*(200/Math.max(nCrisp,1));
+    const h=Math.max(1.4, unit*0.22*(0.6+Math.random()*0.8));
+    let r=Math.random()*tS,ci=0; for(let j=0;j<5;j++){ci=j;r-=tw[j];if(r<=0)break;}
+    o.fillStyle=C(TA[ci]); o.globalAlpha=0.85;
+    o.fillRect(-4+Math.random()*8, y-h/2, 208, h);
+  }
+  // ザクザク = 角のある破片
+  const nHard=Math.round(G.hard/100 * 4200/(unit*unit) * 26);
+  for(let i=0;i<nHard;i++){
+    const cx=Math.random()*200, cy=Math.random()*200, sz=unit*(0.5+Math.random()*0.75);
+    let r=Math.random()*tS,ci=0; for(let j=0;j<5;j++){ci=j;r-=tw[j];if(r<=0)break;}
+    o.fillStyle=C(TA[ci]); o.globalAlpha=0.95;
+    o.save(); o.translate(cx,cy); o.rotate(Math.random()*6.283);
+    o.beginPath(); o.moveTo(-sz/2,sz/2); o.lineTo(sz/2,sz*0.28); o.lineTo(sz*0.1,-sz/2); o.closePath(); o.fill();
+    o.restore();
+  }
+  // クリーミー = 丸い塊が寄り集まる
+  const nCream=Math.round(G.creamy/100 * 4200/(unit*unit) * 22);
+  for(let i=0;i<nCream;i++){
+    const cx=Math.random()*200, cy=Math.random()*200, rr=unit*(0.34+Math.random()*0.5);
+    let r=Math.random()*tS,ci=0; for(let j=0;j<5;j++){ci=j;r-=tw[j];if(r<=0)break;}
+    o.fillStyle=C(TA[ci]); o.globalAlpha=0.9;
+    o.beginPath(); o.arc(cx,cy,rr,0,6.283); o.fill();
+  }
+  o.globalAlpha=1;
+
+  /* --- 3. 味の軸ごとの上書き模様 --- */
+  // からい = 中心からの放射
+  if(G.spicy>4){
+    const n=Math.round(G.spicy/100*30);
+    o.strokeStyle=C('spicy'); o.lineWidth=Math.max(1,unit*0.10);
+    for(let i=0;i<n;i++){ const a=i/n*6.283+0.2;
+      o.beginPath(); o.moveTo(100+Math.cos(a)*22,100+Math.sin(a)*22);
+      o.lineTo(100+Math.cos(a)*150,100+Math.sin(a)*150); o.stroke(); }
+  }
+  // すっぱい = 斜めストライプ
+  if(G.sour>4){
+    const gap=Math.max(5, 42-G.sour*0.34);
+    o.strokeStyle=C('sour'); o.lineWidth=Math.max(1.2,unit*0.13); o.globalAlpha=0.75;
+    for(let x=-200;x<300;x+=gap){ o.beginPath(); o.moveTo(x,-20); o.lineTo(x+220,220); o.stroke(); }
+    o.globalAlpha=1;
+  }
+  // うまい = 同心のリング
+  if(G.umami>4){
+    const n=Math.round(G.umami/100*9);
+    o.strokeStyle=C('umami'); o.lineWidth=Math.max(1.2,unit*0.11); o.globalAlpha=0.7;
+    for(let i=1;i<=n;i++){ o.beginPath(); o.arc(100,100,i*(95/n),0,6.283); o.stroke(); }
+    o.globalAlpha=1;
+  }
+  o.restore();
+  o.strokeStyle='#0d1117'; o.lineWidth=3.2; o.stroke(p);
+
+  /* --- 4. 出来た図形を粒子に翻訳する --- */
+  const d=o.getImageData(0,0,S,S).data, pts=[];
+  for(let y=0;y<S;y+=2)for(let x=0;x<S;x+=2){
+    const i=y*S+x;
+    if(d[i*4+3]>40) pts.push([x/S-0.5, y/S-0.5, d[i*4],d[i*4+1],d[i*4+2]]);
+  }
+  while(pts.length>2600) pts.splice((Math.random()*pts.length)|0,1);
+  genCanvas=off;
+  genPts=pts;
+  genPhase=pts.map(()=>Math.random());
+  genSize=pts.map(()=>rnd(1.0,2.8));
+}
+function drawGenerated(dt){
+  const img = aiImg || genCanvas;
+  if(!img) return;
+  // 文字欄の高さを画面比で見る。縦画面で固定値を引くと絵が上に寄ってしまう
+  const txtH = W<820 ? H*0.30 : 250;
+  const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=(H-txtH)*0.98;
+  const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
+  let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
+  const cx=W/2, cy=(H-txtH*0.86)*0.50;
+  const rot=fsin(T*0.6)*10*Math.PI/180, bob=fsin(T*0.9)*h*0.02;
+  // 白の下ですでに出来上がっている。白が引いた時には、もう浮かんでいる
+  X.save(); X.translate(cx,cy+bob); X.rotate(rot);
+
+  // 既存のお菓子と同じ扱い：面として描いてから侵食する
+  const pad=Math.ceil(w*0.08), sw=Math.ceil(w)+pad*2, sh=Math.ceil(h)+pad*2;
+  if(SC.width<sw||SC.height<sh){ SC.width=Math.max(SC.width,sw); SC.height=Math.max(SC.height,sh); }
+  SX.clearRect(0,0,sw,sh);
+  SX.filter = aiImg ? 'brightness(1.04) contrast(1.03)' : 'none';
+  SX.drawImage(img,pad,pad,w,h);
+  SX.filter='none';
+  SX.globalCompositeOperation='destination-out';
+  const NH=260;
+  for(let i=0;i<NH;i++){
+    const ph=(i*0.61803)%1;
+    const o=fsin(T*1.9+ph*23.3)*0.5+0.5;
+    if(o<0.70) continue;
+    const g=(o-0.70)/0.30, r=0.55*(1+g*1.5);
+    const ex=((i*0.7548)%1), ey=((i*0.5698)%1);
+    const edge = Math.min(ex,1-ex,ey,1-ey)<0.16;      // 縁を重点的に削る
+    if(!edge && Math.random()>0.28) continue;
+    SX.globalAlpha=Math.min(0.35+g*0.7,1);
+    SX.fillRect(pad+ex*w-r, pad+ey*h-r, r*2, r*2);
+  }
+  SX.globalAlpha=1; SX.globalCompositeOperation='source-over';
+  X.globalCompositeOperation='multiply';
+  X.drawImage(SC,0,0,sw,sh,-w/2-pad,-h/2-pad,sw,sh);
+  X.globalCompositeOperation='source-over';
+
+  // 剥がれた分が粒子として飛ぶ。AI画像が来ている時は骨格の点群を重ねない（絵が濁るため）
+  if(!aiImg && genPts){
+    for(let k=0;k<genPts.length;k+=2){
+      const p=genPts[k], ph=genPhase[k];
+      const f=(T*7.5+ph*11)%1;
+      let a=f<0.34?1:f<0.52?0.4:f<0.68?0.12:0;
+      if(a<=0)continue;
+      const ang=ph*6.283+T*0.7, rr=(fsin(T*1.4+ph*9)*0.5+0.5)*1.9;
+      X.globalAlpha=a*0.9;
+      X.fillStyle=(((k*7+((T*4)|0))%61)===0)?NOISE[k%5]:'rgb('+p[2]+','+p[3]+','+p[4]+')';
+      const z=genSize[k];
+      X.fillRect(p[0]*w+fcos(ang)*rr*w*.028-z/2, p[1]*h+fsin(ang)*rr*w*.028-z/2, z, z);
+    }
+  } else if(aiImg && aiPts){
+    // 表紙のお菓子とまったく同じ式。縁ほど外へ飛び、パラパラと明滅する
+    const tf=T*7.5, tt=(T*4)|0, ta=T*0.7, tr=T*1.4;
+    for(let k=0;k<aiPts.length;k++){
+      const p=aiPts[k], ph=p.ph;
+      const f=(tf+ph*11)%1;
+      let a=f<0.42?1:f<0.62?0.42:f<0.78?0.12:0;
+      if(a<=0)continue;
+      const spread=(p.e?2.4:0.6);
+      const ang=ph*6.283+ta;
+      const rr=(fsin(tr+ph*9)*0.5+0.5)*spread + (fsin(T*3.1+ph*41)*0.5+0.5)*0.55;
+      const gx=p.x*w + fcos(ang)*rr*w*0.055 + fsin(T*2.3+ph*17)*w*0.006;
+      const gy=p.y*h + fsin(ang)*rr*w*0.055 + fcos(T*2.7+ph*29)*w*0.006;
+      const z=p.s*1.15;
+      X.globalAlpha=a*(p.e?0.95:0.6);
+      X.fillStyle=((k*7+tt)%53)===0 ? NOISE[k%5] : p.c;
+      X.fillRect(gx-z/2, gy-z/2, z, z);
+    }
+  }
+  X.restore(); X.globalAlpha=1;
+}
+function nearest(k){
+  return OKASHI.map(d=>({d,dist:Math.sqrt(AXES.reduce((a,x,i)=>a+Math.pow(d.v[i]-G[x],2),0))}))
+    .sort((a,b)=>a.dist-b.dist).slice(0,k);
+}
+const NM_T={hard:['ザク','ゴリ','ガリ'],crisp:['パリ','サク','シャリ'],creamy:['トロ','フワ','ホロ']};
+const NM_A={sweet:['アマ','スイ','ミル'],salt:['シオ','ソル','ジオ'],spicy:['カラ','ヒリ','ゲキ'],sour:['スッパ','レモ','サワ'],umami:['ウマ','ダシ','コク']};
+const NM_F={cup:'リン',box:'ボン',bag:'ータ',stick:'ーノ',pillow:'っこ',tube:'丸'};
+
+
+/* ============================================================
+   AI生成レイヤー（C案）
+   ・9つの数値から seed を決定的に作る → 同じ数値なら必ず同じ絵
+   ・数値は「言葉」に直して渡す（数字を渡すとパッケージに印字されてしまう）
+   ・待っている間はプログラム生成の図形を出しておく
+   ============================================================ */
+/* AIの返す背景は真っ白ではなく薄い灰色。板に見えてしまうので抜いてから使う */
+/* 生成物からも粒子を実測する。表紙のお菓子と同じエンジンに乗せて、静止画に見せない。 */
+let aiPts=null;
+function samplePartsFrom(cv){
+  const S=150, o=document.createElement('canvas'); o.width=o.height=S;
+  const c=o.getContext('2d',{willReadFrequently:true});
+  c.drawImage(cv,0,0,S,S);
+  const d=c.getImageData(0,0,S,S).data, pts=[];
+  const at=(x,y)=>d[((y*S+x)<<2)+3];
+  for(let y=1;y<S-1;y++)for(let x=1;x<S-1;x++){
+    const i=(y*S+x)<<2; if(d[i+3]<60) continue;
+    if(Math.random()>0.10) continue;
+    const edge = at(x-1,y)<60||at(x+1,y)<60||at(x,y-1)<60||at(x,y+1)<60 ? 1:0;
+    pts.push({x:x/S-0.5, y:y/S-0.5, c:'rgb('+d[i]+','+d[i+1]+','+d[i+2]+')',
+              e:edge, ph:Math.random(), s:rnd(.55,2.1)});
+  }
+  // 縁の粒子を厚めに足す（飛び散りは縁から出るほうが自然）
+  const eg=pts.filter(p=>p.e);
+  for(let k=0;k<eg.length && pts.length<2400;k++){
+    const p=eg[k];
+    pts.push({x:p.x,y:p.y,c:p.c,e:1,ph:Math.random(),s:rnd(.7,2.4)});
+  }
+  return pts;
+}
+function knockWhite(im){
+  const w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  const cx=cv.getContext('2d',{willReadFrequently:true});
+  cx.drawImage(im,0,0);
+  const d=cx.getImageData(0,0,w,h), a=d.data;
+  for(let i=0;i<a.length;i+=4){
+    const r=a[i],g=a[i+1],b=a[i+2];
+    const mn=Math.min(r,g,b), mx=Math.max(r,g,b);
+    if(mn>=198 && mx-mn<=15){                       // 白〜淡灰で彩度がない画素だけ落とす
+      a[i+3] = mn>=230 ? 0 : Math.round((1-(230-mn)/32)*255);
+    }
+  }
+  cx.putImageData(d,0,0);
+  return cv;
+}
+/* true = Geminiで生成する（本番）。false = APIを使わず、味がいちばん近い既存のお菓子を出す。
+   検証や調整でAPI代を使いたくない時だけ false にする。 */
+const USE_AI=false;
+let aiImg=null, aiBusy=false, aiTimer=null, aiT0=0, aiMs=0, aiErr='', aiCalls=0;
+/* 612枚の束。読み終わるまで数百ms。待機画面の間に済むので待たせない */
+let packPicker=null, packItem=null;
+fetch('okashi612.json').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); })
+  .catch(e=>{ console.error('okashi612.json',e); });
+const aiCache=new Map();
+function gHash(t){ let h=2166136261; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+function gSeed(){ return gHash(AXES.map(a=>G[a]).join(',')+G.form)%2147483647; }
+function band(v,w){ return v<20?w[0]:v<45?w[1]:v<70?w[2]:w[3]; }
+function specText(){
+  const t=[];
+  [["sweet",["","ほのかな甘さ","しっかりした甘さ","強い甘さ"]],
+   ["salt",["","ほのかな塩気","はっきりした塩気","強い塩気"]],
+   ["spicy",["","かすかな辛み","はっきりした辛み","刺すような辛み"]],
+   ["sour",["","かすかな酸味","はっきりした酸味","強い酸味"]],
+   ["umami",["","かすかな旨み","はっきりした旨み","濃厚な旨み"]]].forEach(([k,w])=>{
+     const x=band(G[k],w); if(x)t.push(x); });
+  const tex=[["hard","硬く歯が立つほどザクザクした"],["crisp","薄く軽くパリパリした"],["creamy","口の中でとろけるクリーミーな"]]
+    .reduce((a,b)=>G[b[0]]>G[a[0]]?b:a)[1];
+  const size=band(G.grain,["ごく小さな粒が集まった","小指の先ほどの粒の","ひと口大の","手に取る大きさの"]);
+  const form={cup:"円錐台のカップ容器入り",box:"縦長の紙箱入り",bag:"上下にシールのある袋入り",
+    stick:"細長いスティック状",pillow:"個包装のピロー包装",tube:"円筒のチューブ容器入り"}[G.form];
+  const dom=["sweet","salt","spicy","sour","umami"].reduce((a,b)=>G[b]>G[a]?b:a);
+  const col={sweet:"ピンクと生成り",salt:"青と白",spicy:"赤と黒",sour:"黄と黄緑",umami:"茶と金"}[dom];
+  const deco = G.deco>66?"色数が多くにぎやかな意匠":G.deco>33?"要素を絞った意匠":"ほぼ単色の素っ気ない意匠";
+  return form+"。"+size+tex+"食感で、味は"+t.join("と")+"。主配色は"+col+"。"+deco+"。";
+}
+function aiPrompt(){
+  const spec=specText();
+  return (typeof buildFxPrompt==='function') ? buildFxPrompt(spec) : spec;
+}
+function requestAI(now){
+  if(!USE_AI){        // 612枚の中から、答えにいちばん近いものを重み付きで引く
+    if(!packPicker){ aiErr='おかしの束が読めていない'; refreshGen(); return; }
+    aiBusy=true; aiImg=null; aiErr='';
+    packItem = packPicker.pick(qAns.map(v=>v===undefined?4:v));
+    const im=new Image();
+    im.onload=()=>{
+      try{ const kn=knockWhite(im); aiImg=kn; aiPts=samplePartsFrom(kn); }
+      catch(e){ aiErr='取り込み失敗: '+(e&&e.message||e); }
+      aiMs=0; aiBusy=false;
+      // 生成演出が回っている最中に画像が届いたら、止めずに続きを流す
+      if(rvOn){ try{ const v=$('rvVid'); v.playbackRate=1; if(v.paused) v.play().catch(()=>{}); }catch(e){} }
+      refreshGen();
+    };
+    im.onerror=()=>{ aiErr='画像が読み込めなかった: '+packItem.img; aiBusy=false; refreshGen(); };
+    im.src='img/'+packItem.img;
+    return;
+  }
+  if(typeof GEMINI_KEY==='undefined'||!GEMINI_KEY){ aiErr='config.local.js が読めていない'; refreshGen(); return; }
+  clearTimeout(aiTimer);
+  const go=async()=>{
+   try{
+    const seed=gSeed();
+    if(aiCache.has(seed)){ aiImg=aiCache.get(seed); aiPts=samplePartsFrom(aiImg); aiMs=0; refreshGen(); return; }
+    aiBusy=true; aiImg=null; aiErr=''; aiCalls++; aiT0=performance.now(); refreshGen();
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:aiPrompt()}]}],
+          generationConfig:{responseModalities:["IMAGE"],seed}})});
+      if(!res.ok){ aiErr='HTTP '+res.status+' '+(await res.text()).slice(0,120); aiBusy=false; refreshGen(); return; }
+      const d=await res.json();
+      const p=(d.candidates?.[0]?.content?.parts||[]).find(x=>x.inlineData);
+      if(p){ const im=new Image();
+        im.onload=()=>{ const kn=knockWhite(im); aiImg=kn; aiPts=samplePartsFrom(kn); aiCache.set(seed,kn); aiMs=Math.round(performance.now()-aiT0); aiBusy=false;
+          if(rvOn){ try{ const v=$('rvVid'); v.playbackRate=1; if(v.paused) v.play().catch(()=>{}); }catch(e){} }
+          refreshGen(); };
+        im.src='data:image/png;base64,'+p.inlineData.data;
+      } else { aiErr='画像が返らなかった: '+JSON.stringify(d).slice(0,140); aiBusy=false; refreshGen(); }
+   }catch(e){ aiErr='失敗: '+(e&&e.message||e); aiBusy=false; refreshGen(); }
+  };
+  if(now) go().catch(e=>{ aiErr='起動失敗: '+(e&&e.message||e); aiBusy=false; refreshGen(); });
+  else aiTimer=setTimeout(()=>go().catch(e=>{ aiErr='起動失敗: '+(e&&e.message||e); aiBusy=false; refreshGen(); }),700);
+}
+
+
+
+/* ============================================================
+   生成演出 ── 実写クリップを1フレームずつ粒子でなぞる
+   ・動画は画面に出さない。画面外の小さな canvas に毎フレーム描いて読む
+   ・粒子は格子に「定位置」で並ぶ。1セルに1粒。動き回らせない
+   ・毎フレーム、そのセルの明暗をそのまま粒子の濃さと大きさにする
+     → 配置も明暗の入り方も、元の映像と一致する（＝下書きをなぞる）
+   ・色は動画から取らず、来場者が選んだ味の数値の比率で配る
+   ・毎フレーム自動で明暗の幅を伸ばす。白地に白の映像で階調が潰れないように
+   ============================================================ */
+const RVW=384, RVH=216;                                  // 動画を読む解像度（82,944セル）
+/* 素材の被写体は画面のど真ん中には写っていない。全編を実測した重心は
+   x=0.525 / y=0.580（＝わずかに右、はっきり下）。ここを画面中央に合わせないと、
+   渦も真珠も破裂も、中心からずれた場所で起きる */
+const RVCX=0.525, RVCY=0.580;
+/* 調整用パラメータ。Pキーでパネルを開いて動かせる。
+   ★ が付いたものは粒子を作り直すので「やり直す」を押すと反映される */
+const RVP={
+  grid:560,                    // ★ 基準の格子よこ（たては16:9で自動）
+  /* 3つのレイヤー。a=濃さ / n=本数（基準を1）/ sp=散らばり（セル単位の標準偏差）/ z=粒の一辺px */
+  /* 奥・中・手前の3層に見えるよう、散らばり・粒の大きさ・明滅の速さを層ごとに変える */
+  L:[ {a:0.72, n:1.00, sp:0.0, z:2},       // 中：格子どおり、基準
+      {a:1.00, n:0.35, sp:2.6, z:3},       // 手前：濃く、大きく、よく散る
+      {a:0.30, n:0.55, sp:4.5, z:1} ],     // 奥：薄く、小さく、広く霞む
+  blink:0.88,                  // 明滅で出ている割合
+  sat:1.00, lit:1.00, hueSpan:0.92,        // ★ 色
+  rVortex:0.90, rBurst:0.55,               // 渦 / 破裂 の再生速度
+  blow:3.6,                                // 破裂の勢い（指数加速の強さ）
+  blowVar:2.6,                             // 奥行きのばらつき。0だと全粒同速＝ズームに見えてしまう
+  streak:1.8,                              // 尾の長さ
+  blowFade:0.85, blowZ:5,                  // 破裂の消え / 手前を横切る粒の最大サイズ
+  stream:1.5, fitZ:1.35,                              // 破裂後、後続の粒が中心から流れ続ける秒数
+  wIn:0.55, wHold:0.35, wOut:1.10          // 白へ / 白のまま / 白が引く
+};
+let RGW=RVP.grid, RGH=Math.round(RVP.grid*9/16);
+let rvScrub=false;                          // タイムラインで止めている間は再生制御をしない
+/* 23万粒を fillRect で描くと状態変更だけで潰れる。
+   透明なオフスクリーンに直接ピクセルを書き、1フレーム1回だけ転送する。 */
+let rvBufCv=null, rvBufCx=null, rvImg=null, rvBuf32=null, rvBW=0, rvBH=0;
+let rvColU32=null;
+const rvFlTab=new Float32Array(192);  // 明滅の早見表（3層×64位相）
+const RV_DITHER=0;                    // 稜線の散らし。0で無効、0.7くらいで縁がほどける
+const RV_FLAT=true;                   // true で濃さを映像の明暗から切り離す
+/* 濃さは3層。中は格子どおりに並べ、濃い層と薄い層は別の粒子として
+   格子に乗せず自由な位置にばらまく（＝重ならず、近くに散る）。
+   本数は 中10 : 濃4 : 薄4。 */
+
+const RV_SCALE=1.0;                     // 描画バッファの倍率。粒を潰さないよう実寸で持つ
+function rvEnsureBuf(){
+  const bw=Math.max(2,(W*RV_SCALE)|0), bh=Math.max(2,(H*RV_SCALE)|0);
+  if(rvBufCv && rvBW===bw && rvBH===bh) return;
+  rvBW=bw; rvBH=bh;
+  rvBufCv=document.createElement('canvas'); rvBufCv.width=bw; rvBufCv.height=bh;
+  rvBufCx=rvBufCv.getContext('2d');
+  rvImg=rvBufCx.createImageData(bw,bh);
+  rvBuf32=new Uint32Array(rvImg.data.buffer);
+}
+const RVC=document.createElement('canvas'); RVC.width=RVW; RVC.height=RVH;
+const RVX=RVC.getContext('2d',{willReadFrequently:true});
+let rvField=new Float32Array(RVW*RVH);
+let rvHX=null, rvHY=null, rvPHq=null, rvTH=null, rvLV=null, rvBV=null, rvBurstOn=false, rvStreamT=0, rvPX=null, rvPY=null, rvPA=null, rvPH=null, rvPC=null, rvPF=null, rvPS=null;
+let rvP=[], rvOn=false, rvT=0, rvRare=0, rvWaiting=false, rvCols=[], rvIntro=0, rvOk=true;
+let rvFlash=0, gShow=0, rvByCol=[], rvSwirl=0;                 // 発光の残量 / 生成物の現れ具合
+const RV_FLASH=1.05;   // クリップの終わり何秒前から白くし始めるか                    // クリップの終わり何秒前から光らせるか
+const RV_SLOW=2.55, RV_BURST=3.45;      // 真珠が漂う区間 / 破裂の始まり（動画内の秒数）
+
+/* 真珠が散ったあと、画面が静かに白へ満ちる。
+   1秒ほど白のまま置いて、白が引いた時にはお菓子も文字ももう出来上がっている。
+   図案は入れない。白の不透明度が下がるだけ。 */
+
+function drawFlash(dt){
+  if(rvFlash<=0) return;
+  rvFlash+=dt;                                     // ここでは経過時間として使う
+  const t=rvFlash;
+  let a;
+  if(t<RVP.wIn)              a=Math.pow(t/RVP.wIn, 1.35);
+  else if(t<RVP.wIn+RVP.wHold) a=1;
+  else                       a=1-Math.pow(Math.min(1,(t-RVP.wIn-RVP.wHold)/RVP.wOut), 0.80);
+  if(a<=0){ rvFlash=0; $('veil').style.opacity='0'; return; }
+  $('veil').style.opacity=a.toFixed(3);
+}
+const TASTE_HUE={sweet:335, salt:208, spicy:12, sour:52, umami:38};
+function hsl2rgb(h,sl,l){
+  h=((h%360)+360)%360/360;
+  const q=l<0.5? l*(1+sl) : l+sl-l*sl, p=2*l-q;
+  const f=t=>{ t=(t+1)%1;
+    return t<1/6? p+(q-p)*6*t : t<1/2? q : t<2/3? p+(q-p)*(2/3-t)*6 : p; };
+  return [Math.round(f(h+1/3)*255),Math.round(f(h)*255),Math.round(f(h-1/3)*255)];
+}
+/* 色はシャボン膜のパステル。クレヨンの虹（＝色相を等間隔に一周させる）にすると
+   途端に子どもの絵になるので、色相は「使う色だけ」を並べた環にする。
+   青・薄紫・桃・生成り・若草だけを通り、赤と橙と純緑は通らない。
+   彩度は 0.10〜0.30 と低く、明度は 0.78〜0.92 と高く保つ（＝淡い）。
+   ところどころだけ彩度と明度を強めて、膜の厚みが変わったような濃淡を作る。 */
+const RV_HUES=[                    // 通る色だけを環にする
+  { h:200, s:0.46, l:0.845 },       // 水色
+  { h:222, s:0.44, l:0.855 },       // 青
+  { h:258, s:0.40, l:0.865 },       // 薄紫
+  { h:292, s:0.36, l:0.875 },       // 藤
+  { h:330, s:0.42, l:0.865 },       // 桃
+  { h:352, s:0.38, l:0.875 },       // 淡紅
+  { h: 38, s:0.44, l:0.875 },       // 生成り
+  { h: 62, s:0.38, l:0.870 },       // 淡黄
+  { h:110, s:0.30, l:0.870 },       // 若草
+  { h:168, s:0.36, l:0.860 },       // 水緑
+];
+let rvHue0=0;
+const RV_NC=140;                                   // 色の段数
+function rvBuildCols(){
+  const TA=['sweet','salt','spicy','sour','umami'];
+  const w=TA.map(k=>Math.max(G[k],0)), S=w.reduce((a,b)=>a+b,0)||1;
+  // 味の比率で色相の重心を出し、環のどこから始めるかを決める
+  let sx=0, sy=0;
+  for(let j=0;j<5;j++){ const an=TASTE_HUE[TA[j]]*Math.PI/180, ww=w[j]/S;
+    sx+=Math.cos(an)*ww; sy+=Math.sin(an)*ww; }
+  const centre=((Math.atan2(sy,sx)*180/Math.PI)+360)%360;
+  let best=0, bd=1e9;
+  for(let k=0;k<RV_HUES.length;k++){
+    const d=Math.abs(((RV_HUES[k].h-centre+540)%360)-180);
+    if(d<bd){ bd=d; best=k; }
+  }
+  rvHue0=best;
+  rvCols=[];
+  const N=RV_HUES.length;
+  for(let i=0;i<RV_NC;i++){
+    const u=i/RV_NC*(N*RVP.hueSpan), k=(Math.floor(u)+best)%N, k2=(k+1)%N, f=u-Math.floor(u);
+    const A=RV_HUES[k], B=RV_HUES[k2];
+    let hd=B.h-A.h; if(hd>180) hd-=360; if(hd<-180) hd+=360;
+    let h=A.h+hd*f, sat=(A.s+(B.s-A.s)*f)*RVP.sat, lit=(A.l+(B.l-A.l)*f)*RVP.lit;
+
+    const c=hsl2rgb(h, Math.max(0.04,Math.min(0.58,sat)), Math.max(0.52,Math.min(0.96,lit)));
+    rvCols.push('rgb('+c[0]+','+c[1]+','+c[2]+')');
+  }
+  // ピクセル直書き用に 0xAABBGGRR を前計算しておく
+  rvColU32=new Uint32Array(rvCols.length);
+  for(let i=0;i<rvCols.length;i++){
+    const m=rvCols[i].match(/(\d+),(\d+),(\d+)/);
+    rvColU32[i]=((+m[3])<<16)|((+m[2])<<8)|(+m[1]);
+  }
+}
+/* 位置 → 色の段。波を重ねると縞や痣のような模様が出て、
+   上から色を塗ったように見えてしまう。斜めのグラデーション一本だけにする。 */
+function rvColAt(x,y){
+  let t=(x*0.62 + y*0.38);                 // 左上から右下へ、ゆるやかに一度だけ渡る
+  t=0.06+t*0.88;
+  if(t<0) t=0; else if(t>1) t=1;
+  return Math.min(RV_NC-1,(t*RV_NC)|0);
+}
+/* 動画1フレーム → 各セルの濃さ。フレームごとに明暗の幅を自動で伸ばす */
+function rvSample(v){
+  try{
+    RVX.drawImage(v,0,0,RVW,RVH);
+    const d=RVX.getImageData(0,0,RVW,RVH).data;
+    let lo=255;
+    for(let i=0,p=0;i<rvField.length;i++,p+=4){
+      const l=d[p]*0.30+d[p+1]*0.59+d[p+2]*0.11;
+      if(l<lo) lo=l;
+      rvField[i]=l;
+    }
+    const span=255-lo;
+    if(span<10){ rvField.fill(0); return; }              // ほぼ真っ白のフレーム
+    const inv=1/span;
+    /* 素材の下端には床の影が写り込んでいる。16:9では真珠の影として成立するが、
+       縦画面では本体から切り離れた帯に見えるので、下7%をなだらかに落とす */
+    const fadeFrom=Math.floor(RVH*0.93);
+    for(let i=0,p=0;i<rvField.length;i++,p+=4){
+      const r=d[p],g=d[p+1],b=d[p+2];
+      const mx=r>g?(r>b?r:b):(g>b?g:b), mn=r<g?(r<b?r:b):(g<b?g:b);
+      let c=(255-rvField[i])*inv + ((mx-mn)/255)*1.2;    // 暗さ（正規化済み）＋彩度
+      c=(c-0.135)*1.156;                                 // 白地のノイズを切り、残りを伸ばす
+      const row=(i/RVW)|0;
+      if(row>=fadeFrom) c*=1-(row-fadeFrom)/(RVH-fadeFrom);
+      rvField[i]= c<=0 ? 0 : (c>=1 ? 1 : Math.pow(c,0.66));
+    }
+  }catch(e){ rvOk=false; rvField.fill(0); }
+}
+let rvSig='';
+/* 粒子の骨格を組む。位置・色番号・層・読み取りセルは答えに依存しないので、
+   質問中に先に作っておける。押した瞬間にこれをやると12万粒ぶん画面が固まる。 */
+function rvBuildField(){
+  const gW = W<820 ? Math.round(RVP.grid*0.62) : RVP.grid;
+  const sig=[gW,W,H,RVP.L.map(l=>l.n+'/'+l.sp).join(',')].join('|');
+  if(sig===rvSig && rvPA) return false;
+  rvSig=sig;
+  RGW=gW|0; RGH=Math.round(gW*9/16);
+  const NG=RGW*RGH;
+  const cnt=RVP.L.map(l=>Math.max(0,(NG*l.n)|0));
+  const N=cnt.reduce((x,y)=>x+y,0);
+  rvEnsureBuf();
+  rvHX=new Float32Array(N); rvHY=new Float32Array(N);
+  rvPX=new Float32Array(N); rvPY=new Float32Array(N); rvPA=new Float32Array(N);
+  rvPH=new Float32Array(N); rvPHq=new Uint8Array(N); rvPC=new Uint16Array(N); rvPF=new Int32Array(N);
+  rvTH=new Float32Array(N); rvLV=new Uint8Array(N); rvBV=new Float32Array(N);
+  const gauss=()=>(Math.random()+Math.random()+Math.random()+Math.random()+Math.random()+Math.random()-3);
+  let i=0;
+  for(let l=0;l<3;l++){
+    const n=cnt[l], sp=RVP.L[l].sp;
+    if(!n) continue;
+    const stride=NG/n;
+    for(let k=0;k<n;k++){
+      const cell=(k*stride)|0, cx=cell%RGW, cy=(cell/RGW)|0;
+      let hx=(cx+0.12+Math.random()*0.76)/RGW;
+      let hy=(cy+0.12+Math.random()*0.76)/RGH;
+      if(sp>0){ hx+=gauss()*sp/RGW; hy+=gauss()*sp/RGH; }
+      hx=hx<0?0:hx>0.9999?0.9999:hx; hy=hy<0?0:hy>0.9999?0.9999:hy;
+      rvHX[i]=hx; rvHY[i]=hy;
+      rvPC[i]=rvColAt(hx,hy);
+      rvPH[i]=Math.random(); rvPHq[i]=(rvPH[i]*64)|0;
+      rvTH[i]=Math.random(); rvLV[i]=l;
+      rvPF[i]=((hy*RVH)|0)*RVW + ((hx*RVW)|0);
+      i++;
+    }
+  }
+  return true;
+}
+function revealStart(){
+  const nb=nearest(1)[0], maxD=Math.sqrt(9*100*100);
+  rvRare = Math.min(100, Math.round(nb.dist/maxD*100*3.0));   // ＝空白度。これが「レア度」
+  rvT=0; rvOn=true; rvWaiting=false; rvIntro=0.62; rvSwirl=0;
+  rvBuildCols();                                  // 色は味で変わるので毎回。140段だけなので軽い
+  rvBuildField();                                 // 未構築か、寸法が変わった時だけ組み直す
+  rvField.fill(0); rvBurstOn=false; rvStreamT=0;
+  const b=$('qMake').getBoundingClientRect();
+  const bx=(b.left+b.width/2)/W||0.5, by=(b.top+b.height/2)/H||0.5, br=(b.width*0.5)/W||0.11;
+  const N=rvPA.length;
+  for(let i=0;i<N;i++){                            // 初期位置と濃さを戻すだけ
+    const an=Math.random()*6.283, rr=br*(0.8+Math.random()*0.55);
+    rvPX[i]=bx+Math.cos(an)*rr; rvPY[i]=by+Math.sin(an)*rr*(W/H);
+    rvPA[i]=0; rvBV[i]=0;
+  }
+  const v=$('rvVid');
+  if(v){ try{ v.pause(); v.currentTime=0; v.playbackRate=0.90; }catch(e){} }
+}
+function revealDraw(dt){
+  if(!rvOn) return true;
+  rvT+=dt;
+  const v=$('rvVid');
+
+  // ① 輪から画面全体へ拡散。その間、動画は1枚目で止めて絵だけ出しておく
+  if(rvIntro>0){
+    rvIntro-=dt;
+    if(v && v.readyState>=2) rvSample(v);
+    const k=1-Math.pow(0.0016,dt);
+    if(rvPX) for(let i=0;i<rvPX.length;i++){ rvPX[i]+=(rvHX[i]-rvPX[i])*k; rvPY[i]+=(rvHY[i]-rvPY[i])*k; }
+    if(rvIntro<=0){
+      if(rvPX) for(let i=0;i<rvPX.length;i++){ rvPX[i]=rvHX[i]; rvPY[i]=rvHY[i]; }
+      if(v) try{ v.playbackRate=0.16; v.play().catch(()=>{}); }catch(e){}
+    }
+    rvRender(dt, -1);
+    return false;
+  }
+  if(!v || v.readyState<2){ rvRender(dt,-1); return false; }
+  const ct=v.currentTime;
+
+  // ② 再生速度。画像が届いているかだけで決める
+  if(!rvScrub){
+    let rate;
+    if(ct>=RV_BURST)      rate=RVP.rBurst;
+    else if(ct>=RV_SLOW)  rate=aiImg?RVP.rVortex:0.20;
+    else if(ct<0.42)      rate=0.16+(ct/0.42)*(RVP.rVortex-0.16);
+    else                  rate=RVP.rVortex;
+    rvWaiting = !aiImg && ct>=RV_SLOW;
+    if(Math.abs(v.playbackRate-rate)>0.01) v.playbackRate=rate;
+    if(v.paused && ct<v.duration-0.06) v.play().catch(()=>{});
+  }
+
+  rvSample(v);
+  rvRender(dt, ct);
+  if(rvFlash<=0 && (ct>=v.duration-RV_FLASH || (aiImg && rvBurstOn && rvStreamT>=RVP.stream-0.25))){ rvFlash=0.0001; gShow=1; gResult(); }
+  drawFlash(dt);
+  // 白が満ちきったら、動画の残りは待たずにここで演出を終える。
+  // 画面が全部白いこの瞬間が、画像と文字を同時に仕込める唯一のカット点
+  if(rvFlash>=RVP.wIn && rvOn){ rvOn=false; gStep='RESULT'; try{v.pause();}catch(e){} return true; }
+  // duration は読み込みによって 6.00 と報告される回があるが、再生は 5.9167 で止まる。
+  // 差分だけで判定すると終了を取りこぼし、演出が終わらないまま固まる。ended を併用する
+  if(!rvScrub && (v.ended || ct>=v.duration-0.06)){ rvOn=false; gStep='RESULT'; try{v.pause();}catch(e){} return true; }
+  return false;
+}
+function rvRender(dt, ct){
+  if(!rvPA) return;
+  rvEnsureBuf();
+  const bw=rvBW, bh=rvBH, buf=rvBuf32;
+  buf.fill(0);
+  /* 粒子の座標は 16:9 の映像に対する比率。画面へ等倍で貼ると、縦長の画面では
+     そのぶん縦に引き伸ばされる。比を保ったまま画面を覆う矩形へ写す */
+  const SRC_AR=16/9;
+  let dw,dh;
+  if(bw/bh > SRC_AR){ dw=bw; dh=bw/SRC_AR; }
+  else {
+    /* 縦画面で高さに合わせると、16:9が横に3.9倍はみ出して渦の真ん中しか映らない。
+       幅を基準に、少しだけ寄る */
+    dw=bw*RVP.fitZ; dh=dw/SRC_AR;
+  }
+  // 被写体の重心を画面の中心へ持ってくる
+  const oxb=bw*0.5-RVCX*dw, oyb=bh*0.5-RVCY*dh;
+  const fade=1-Math.pow(0.00002,dt);
+  const tf=T*7.5, intro=ct<0;
+  const N=rvPA.length, sc=intro?0.85:1;
+  /* 破裂。全粒を同じ倍率で広げるとカメラが寄って見えるだけになる（実際そうなっていた）。
+     爆発に見えるのは、粒ごとに速度が違い（＝奥行きの視差）、速い粒が尾を引いて
+     目の前を横切る時。破裂の瞬間に各粒へ速度係数を配り、指数加速＋ストリークで飛ばす。 */
+  const bt = (!intro && ct>RV_BURST) ? (ct-RV_BURST) : 0;
+  if(bt>0) rvStreamT+=dt;
+  if(bt>0 && !rvBurstOn){
+    rvBurstOn=true; rvStreamT=0;
+    for(let i=0;i<N;i++){
+      if(rvPA[i]<=0.012){ rvBV[i]=0; continue; }
+      const u=Math.random();
+      rvBV[i]=0.30+u*u*RVP.blowVar;          // 二乗で偏らせる：大半は奥、ひと握りが手前を横切る
+      const dx=rvPX[i]-RVCX, dy=rvPY[i]-RVCY;
+      if(dx*dx+dy*dy<0.0004){                // 中心ど真ん中の粒は向きが決まらないので散らす
+        const an=Math.random()*6.283;
+        rvPX[i]=RVCX+Math.cos(an)*0.02; rvPY[i]=RVCY+Math.sin(an)*0.02;
+      }
+    }
+  }
+  if(bt<=0) rvBurstOn=false;
+  const bFade = bt>0 ? Math.max(0, 1-dt*RVP.blowFade) : 1;
+  const kBlow=RVP.blow, stMul=RVP.streak;
+  // 明滅は毎粒で剰余を取ると重い。位相を64段に量子化して1フレームに1度だけ表を作る。
+  // 層ごとに速さを変え（奥ほど速く細かく）、段も4段にして電子的なチリチリを出す
+  const FLT=rvFlTab, SPD=[7.5,10.5,14.0];
+  for(let l=0;l<3;l++){
+    const tf2=T*SPD[l], base=l<<6, bk=RVP.blink;
+    for(let k=0;k<64;k++){
+      const f=(tf2+k/64*11)%1;
+      FLT[base+k]= f<bk*0.72?1 : f<bk*0.90?0.5 : f<bk?0.22 : 0;
+    }
+  }
+  for(let i=0;i<N;i++){
+    const a0=rvPA[i];
+
+    if(bt>0){
+      // ── 破裂：映像から切り離し、慣性で飛ばす ──
+      if(rvBV[i]===0) continue;                // 破裂時に見えていなかった粒
+      const a=a0*bFade;
+      const ox=rvPX[i], oy=rvPY[i];
+      const dx=ox-RVCX, dy=oy-RVCY;
+      const r2=dx*dx+dy*dy;
+      if(a<=0.014 || r2>2.5){
+        if(rvStreamT<RVP.stream){              // まだ後続が来る：中心から同じ速さで出し直す
+          const an=Math.random()*6.283, rr0=0.015+Math.random()*0.05;
+          rvPX[i]=RVCX+Math.cos(an)*rr0; rvPY[i]=RVCY+Math.sin(an)*rr0*SRC_AR;
+          const u=Math.random(); rvBV[i]=0.30+u*u*RVP.blowVar;
+          rvPA[i]=0.90;
+        } else rvPA[i]=0;
+        continue;
+      }
+      rvPA[i]=a;
+      const LY=RVP.L[rvLV[i]];
+      const al=LY.a*Math.min(1, a*1.7);
+      const A=(al*255)|0; if(A<12) continue;
+      const g=Math.exp(dt*kBlow*rvBV[i]);      // 指数加速。外へ行くほど速い
+      const nx=RVCX+dx*g, ny=RVCY+dy*g;
+      rvPX[i]=nx; rvPY[i]=ny;
+      const col=rvColU32[rvPC[i]] | (A<<24);
+      // 手前を横切る（速い）粒ほど大きく
+      let zz=(LY.z*(1+rvBV[i]*Math.sqrt(r2)*2.4))|0;
+      const zMax=(LY.z*RVP.blowZ)|0; if(zz>zMax) zz=zMax; if(zz<1) zz=1;
+      // 尾：前フレーム位置から現在地まで数点なぞる。速い粒ほど長い
+      const S=1+Math.min(6,(dt*kBlow*rvBV[i]*stMul*38)|0);
+      for(let t=0;t<=S;t++){
+        const f=t/S;
+        const fx=ox+(nx-ox)*f, fy=oy+(ny-oy)*f;
+        const px=(oxb+fx*dw)|0, py=(oyb+fy*dh)|0;
+        if(px<0||py<0||px>=bw||py>=bh) continue;
+        const At=(A*(0.30+0.70*f))|0;          // 尾は薄く、頭は濃く
+        const ct2=(col&0x00ffffff)|(At<<24);
+        const zt=t===S? zz : (zz>>1)||1;
+        const x1=px+zt<bw?px+zt:bw, y1=py+zt<bh?py+zt:bh;
+        for(let yy=py;yy<y1;yy++){ const row=yy*bw;
+          for(let xx=px;xx<x1;xx++){ const q=row+xx; if((buf[q]>>>24)<At) buf[q]=ct2; } }
+      }
+      continue;
+    }
+
+    // ── 通常：映像の明暗をなぞる ──
+    let a;
+    {
+      const w=rvField[rvPF[i]];
+      if(w===0 && a0<=0.02){ if(a0!==0) rvPA[i]=0; continue; }   // 空の場所は即捨てる
+      a=a0+(w*sc-a0)*fade; rvPA[i]=a;
+      if(a<=0.008) continue;
+    }
+    const lv=rvLV[i];
+    const fl=FLT[(lv<<6)+rvPHq[i]];
+    if(fl===0) continue;
+    // 稜線をほどく散らし。RV_DITHER を上げるほど縁が密度の勾配になるが、
+    // 上げると色が薄く見えるので、いまは 0（＝散らさない）に戻してある
+    const th=rvTH[i]*RV_DITHER;
+    if(a<=th) continue;
+    // RV_FLAT=true … 濃さを映像の明暗から切り離し、粒子ごとに濃い/薄いをランダムに配る。
+    //   場所で濃淡を分けると面が塗り分けられたように見えるので、粒の単位で散らす
+    // false … 平方根の階調（淡い側を持ち上げ、濃い側を残す）
+    const LY=RVP.L[lv];
+    let al = fl*LY.a;
+    const A=(al*255)|0; if(A<12) continue;
+    // 電子的な微振動。位置がわずかに揺れると、面ではなく粒の集まりに見える
+    const px=(oxb + rvPX[i]*dw + fsin(T*2.3+rvPH[i]*29)*1.5)|0;
+    const py=(oyb + rvPY[i]*dh + fcos(T*2.1+rvPH[i]*23)*1.5)|0;
+    if(px<0||py<0||px>=bw||py>=bh) continue;
+    const col=rvColU32[rvPC[i]] | (A<<24);
+    const o=py*bw+px;
+    if((buf[o]>>>24)<A) buf[o]=col;
+    const z=LY.z|0;
+    if(z>1){                                   // 粒の一辺。1pxだと面積が減り、面として薄くなる
+      const x1=px+z<bw?px+z:bw, y1=py+z<bh?py+z:bh;
+      for(let yy=py;yy<y1;yy++){ const row=yy*bw;
+        for(let xx=px;xx<x1;xx++){ const q=row+xx; if((buf[q]>>>24)<A) buf[q]=col; } }
+    }
+  }
+  rvBufCx.putImageData(rvImg,0,0);
+  const sm=X.imageSmoothingEnabled; X.imageSmoothingEnabled=false;
+  X.drawImage(rvBufCv,0,0,bw,bh,0,0,W,H);
+  X.imageSmoothingEnabled=sm;
+
+  X.save(); X.globalAlpha=0.9; X.textAlign='center';
+  X.fillStyle= rvRare>62 ? '#0b57d0' : '#6b7280';
+  X.font='700 11px "SF Mono",ui-monospace,monospace';
+  const msg = ct<0 ? '' : ct<1.30 ? 'ざいりょうを あつめています'
+            : ct<RV_BURST ? (rvRare>62 ? '！ この味は 棚にない' : 'かたちが きまりつつあります')
+            : '';
+  if(msg) X.fillText(msg, W/2, H-96);
+  X.restore();
+}
+
+/* ============================================================
+   生成画面 ── 1問1画面のアンケート形式
+   聞くのは6つだけ。残る3軸とパッケージ形態は、答えから自動で決まる。
+   「味を決めれば形が決まる」という作品の主張を、入力にも通す。
+   ============================================================ */
+/* 612枚を作ったときの5軸。味そのものと、食べ方を訊く。
+   形は一度も訊かない ── 味を決めれば形が決まる、という主張を入力にも通す */
+const Q = [
+  {l:'あまい',         r:'しょっぱい'},
+  {l:'ザクザク',       r:'とろける'},
+  {l:'ひと口で終わる', r:'手が止まらない'},
+  {l:'ずっと同じ味',   r:'途中で変わる'},
+  {l:'ひとりで',       r:'みんなで'},
+];
+const NLV=9;                                   // 9段階。中央が「どちらでもない」
+let qIdx=0, qDone=false, qSel=-1, qAns=[];
+
+/* 6回のタップから9軸すべてとパッケージ形態を決める。
+   1問が両極なので、1タップで2つの値が同時に動く。 */
+function deriveRest(){
+  const t = i => (qAns[i]===undefined?4:qAns[i])/(NLV-1);   // 0=左 … 1=右
+  const R = v => Math.round(Math.max(0,Math.min(100,v)));
+  const t0=t(0), t1=t(1), t2=t(2), t3=t(3), t4=t(4);
+
+  // 01 あまい / しょっぱい
+  G.sweet = R((1-t0)*88 + 8);
+  G.salt  = R(t0*88 + 8);
+  // 04 途中で変わる ＝ 味が動く。酸味と辛みはそこから出す
+  G.sour  = R(t3*70 + 6);
+  G.spicy = R(t3*t0*80);
+  // 03 手が止まらない ＝ 後を引く旨み
+  G.umami = R(t2*80 + 6);
+
+  // 02 ザクザク / とろける
+  let hard=(1-t1)*92+6, creamy=t1*92+6, crisp=(1-Math.abs(t1-0.5)*2)*70+10;
+  const sum=hard+creamy+crisp;
+  G.hard=R(hard/sum*100); G.creamy=R(creamy/sum*100); G.crisp=100-G.hard-G.creamy;
+
+  // 03 ひと口で終わる ＝ 大きい / 手が止まらない ＝ 小粒
+  G.grain = R(94 - t2*86);
+  // 05 みんなで ＝ 賑やかな意匠。04 味が動くほど色数も増える
+  G.deco  = R(8 + t4*58 + t3*26);
+
+  // 形も答えから決まる。ここも来場者には訊かない
+  if(t2<0.28)                       G.form = t1>0.55 ? 'cup'  : 'box';
+  else if(t2>0.72)                  G.form = t4>0.5  ? 'bag'  : 'pillow';
+  else if(t1>0.66)                  G.form = 'tube';
+  else if(t1<0.34)                  G.form = 'stick';
+  else                              G.form = t4>0.5 ? 'bag' : 'box';
+}
+function qTicks(){
+  const t=$('qTicks'); t.textContent='';
+  for(let i=0;i<Q.length;i++){
+    const sp=document.createElement('span');
+    sp.dataset.n=String(i+1).padStart(2,'0');
+    if(i===qIdx) sp.classList.add('on');
+    t.appendChild(sp);
+  }
+  $('qFill').style.width=((qIdx)/(Q.length-1)*100)+'%';
+  $('qNo').textContent=String(qIdx+1).padStart(2,'0');
+}
+function qRender(dir){
+  const w=$('qWrap');
+  const paint=()=>{
+    const q=Q[qIdx];
+    $('qTitle').innerHTML = q.l+'<em>か</em>'+q.r+'<em>か</em>';
+    $('qL').textContent=q.l; $('qR').textContent=q.r;
+    qSel = qAns[qIdx]===undefined ? -1 : qAns[qIdx];
+    $('qVal').textContent = qSel<0 ? '— / 0'+NLV : String(qSel+1).padStart(2,'0')+' / 0'+NLV;
+    const box=$('qCircles'); box.textContent='';
+    for(let i=0;i<NLV;i++){
+      const b=document.createElement('button');
+      if(i===qSel) b.classList.add('on');
+      b.onclick=()=>{
+        qSel=i; qAns[qIdx]=i;
+        [...box.children].forEach((el,j)=>el.classList.toggle('on',j===i));
+        $('qVal').textContent=String(i+1).padStart(2,'0')+' / 0'+NLV;
+        setTimeout(qNext,420);
+      };
+      box.appendChild(b);
+    }
+    qTicks();
+  };
+  if(dir===undefined){ paint(); w.className='qwrap show'; return; }
+  w.className='qwrap out';
+  setTimeout(()=>{ paint(); w.className='qwrap in';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>w.className='qwrap show')); },340);
+}
+function qNext(){
+  if(qIdx<Q.length-1){ qIdx++; qRender(1); return; }
+  qDone=true; deriveRest(); buildGenerated();
+  $('qWrap').className='qwrap out';
+  setTimeout(()=>{ $('qWrap').style.display='none'; gStep='READY'; orbShow('qMake'); },340);
+}
+function qReset(){
+  packItem=null; aiImg=null;
+  qIdx=0; qDone=false; qSel=-1; qAns=[];
+  deriveRest();                          // 未回答でも中央値で成立させる
+  $('qWrap').style.display=''; $('genui').classList.remove('ready');
+  ['orbStart','qMake'].forEach(i=>$(i).classList.remove('on','show','go'));
+  qRender();
+}
+/* オーブのまわりに電子をびっしり散らす。押した瞬間は外へ弾ける。 */
+let orbFx=[];
+function orbBurst(id){
+  const b=$(id); if(!b) return;
+  const r=b.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<380;i++){
+    const a=Math.random()*6.283, v=rnd(160,760);
+    orbFx.push({x:cx+fcos(a)*r.width*0.45, y:cy+fsin(a)*r.width*0.45,
+      vx:fcos(a)*v, vy:fsin(a)*v*0.85, life:1, s:rnd(1,3.2),
+      c: Math.random()<0.42 ? NOISE[(Math.random()*NOISE.length)|0] : '#0d1117'});
+  }
+}
+function drawOrbFx(dt){
+  for(let i=orbFx.length-1;i>=0;i--){
+    const p=orbFx[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.94; p.vy*=0.94; p.life-=dt*0.85;
+    if(p.life<=0){ orbFx.splice(i,1); continue; }
+    X.globalAlpha=Math.max(0,p.life)*0.9; X.fillStyle=p.c;
+    X.fillRect(p.x-p.s/2,p.y-p.s/2,p.s,p.s);
+  }
+  X.globalAlpha=1;
+}
+function orbDust(){
+  const id = gStep==='INTRO' ? 'orbStart' : gStep==='READY' ? 'qMake' : null;
+  if(!id) return;
+  const b=$(id); if(!b.classList.contains('on')) return;
+  const r=b.getBoundingClientRect(); if(!r.width) return;
+  const cx=r.left+r.width/2, cy=r.top+r.height/2, R=r.width*0.5;
+  for(let i=0;i<560;i++){                              // かなりの量を散りばめる
+    const ph=(i*0.61803)%1, ph2=(i*0.7548)%1;
+    const f=(T*4.2+ph*11)%1; if(f>0.62) continue;
+    const a=ph*6.283 + T*(0.18+ph2*0.35);
+    const rad=R*(0.62 + ph2*1.05) + fsin(T*2.2+ph*9)*R*0.07;
+    const z=0.8+((i*13)%4)*0.55;
+    X.globalAlpha=(f<0.34?0.85:0.35)*(1-ph2*0.45);
+    X.fillStyle=((i%11)===0)?NOISE[i%5]:(ph2<0.45?'#0d1117':'rgba(20,40,80,.55)');
+    X.fillRect(cx+fcos(a)*rad-z/2, cy+fsin(a)*rad*0.98-z/2, z, z);
+  }
+  X.globalAlpha=1;
+}
+/* 選択中の円のまわりに粒子を散らす（canvasにDOMの位置を合わせて描く） */
+function qBurst(){
+  if(MODE!=='GEN'||qDone||rvOn||qSel<0) return;
+  const box=$('qCircles'); if(!box||!box.children[qSel]) return;
+  const r=box.children[qSel].getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2, R=r.width;
+  for(let i=0;i<120;i++){
+    const ph=(i*0.61803)%1, a=ph*6.283+T*0.5;
+    const f=(T*6+ph*11)%1; if(f>0.55) continue;
+    const rad=R*(0.55+((i*0.7548)%1)*1.15)+Math.sin(T*3+ph*9)*3;
+    X.globalAlpha=0.55*(1-((i*0.37)%1)*0.5);
+    X.fillStyle=NOISE[i%5];
+    const z=1+((i*13)%3)*0.7;
+    X.fillRect(cx+Math.cos(a)*rad-z/2, cy+Math.sin(a)*rad*0.9-z/2, z, z);
+  }
+  X.globalAlpha=1;
+}
+function gResult(){
+  if(aiBusy||rvOn) return;
+  const el=$('genui');
+  if(aiErr){ $('gName').textContent='しっぱい'; $('gCopy').textContent=aiErr; el.classList.add('ready'); return; }
+  if(!aiImg){ el.classList.remove('ready'); return; }
+  const dom=['sweet','salt','spicy','sour','umami'].reduce((a,b)=>G[b]>G[a]?b:a);
+  const tex=['hard','crisp','creamy'].reduce((a,b)=>G[b]>G[a]?b:a);
+  let _s=gSeed()>>>0;
+  const r=()=>{ _s=(_s*1664525+1013904223)>>>0; return _s/4294967296; };
+  const pick=a=>a[(r()*a.length)|0];
+  $('gName').textContent = packItem ? packItem.name
+                         : pick(NM_T[tex])+pick(NM_A[dom])+NM_F[G.form];
+  const nb=nearest(1)[0], maxD=Math.sqrt(9*100*100);
+  const nv=Math.min(100,Math.round(nb.dist/maxD*100*3.0));
+  $('gCopy').textContent = (packItem && packItem.text) || aiText || describe();
+  $('gMeta').textContent = location.search.includes('aidebug') ? ('SEED '+gSeed()+'　API '+aiCalls+'回') : '';
+  el.classList.add('ready');
+}
+/* 結果の文章は「そのお菓子がどんな菓子か」を2文で。画像と同時に走らせるので待ち時間は増えない。 */
+let aiText='';
+function describe(){
+  const dom=['sweet','salt','spicy','sour','umami'].reduce((a,b)=>G[b]>G[a]?b:a);
+  const tex=['hard','crisp','creamy'].reduce((a,b)=>G[b]>G[a]?b:a);
+  const D={sweet:'甘さ',salt:'塩気',spicy:'辛さ',sour:'酸味',umami:'旨み'}[dom];
+  const TX={hard:'噛むほどに崩れるザクザクした',crisp:'薄く軽くパリパリした',creamy:'口の中でほどけるクリーミーな'}[tex];
+  const F={cup:'カップ入り',box:'紙箱入り',bag:'袋入り',stick:'スティック状',pillow:'個包装',tube:'筒入り'}[G.form];
+  const SZ=G.grain>66?'ひと口では収まらない大きさ':G.grain>33?'ひと口大':'指先でつまむ小さな粒';
+  return TX+F+'の菓子で、'+SZ+'。'+D+'が主役で、'+(G.deco>60?'見た目も色数が多く騒がしい。':'見た目は素っ気ないほど簡素。');
+}
+function requestAIText(){
+  aiText='';
+  if(!USE_AI) return;                            // 文章も雛形で出す
+  if(typeof GEMINI_KEY==='undefined'||!GEMINI_KEY) return;
+  const q='次の架空のお菓子を、商品説明として日本語2文で書いてください。'
+    +'1文目は何のお菓子か（食感・形・大きさ）、2文目は味の印象。'
+    +'商品名は書かない。数値や英語は書かない。宣伝文句にせず、事実を述べる調子で。60字以内。\n'+ specText();
+  fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:q}]}]})})
+   .then(r=>r.json()).then(d=>{
+      const t=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join('').trim();
+      if(t){ aiText=t.replace(/\n+/g,''); if(gStep==='RESULT') gResult(); }
+   }).catch(()=>{});
+}
+function refreshGen(){ gResult(); }
+
+let gStep='INTRO';                      // INTRO / ASK / READY / REVEAL / RESULT
+function orbShow(id){
+  const b=$(id); b.classList.add('on'); b.classList.remove('go');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add('show')));
+}
+function orbHide(id){
+  const b=$(id); b.classList.remove('show'); b.classList.add('go');
+  setTimeout(()=>{ b.classList.remove('on','go'); },820);
+}
+function startGen(){
+  MODE='GEN'; document.body.classList.add('genmode');
+  $('genui').classList.add('on');
+  $('genui').classList.remove('ready');
+  $('cta').style.display='none';
+  $('btnBack').style.display='';
+  qReset(); buildGenerated();
+  gStep='INTRO'; rvFlash=0; gShow=0; $('veil').style.opacity='0';
+  $('qWrap').style.display='none';
+  document.querySelector('.qhead').style.opacity='0';
+  orbShow('orbStart');
+}
+$('orbStart').onclick=()=>{
+  if(gStep!=='INTRO') return;
+  gStep='ASK'; orbBurst('orbStart');           // 押した瞬間に粒子が弾ける
+  orbHide('orbStart');
+  try{ rvBuildCols(); rvBuildField(); }catch(e){}   // 押す前に作っておく
+  setTimeout(()=>{
+    document.querySelector('.qhead').style.transition='opacity .9s';
+    document.querySelector('.qhead').style.opacity='1';
+    $('qWrap').style.display=''; qRender();
+  },560);
+};
+function buildGenUI(){
+  const g=$('genPanel'); g.innerHTML='';
+  AXES.forEach((a,k)=>{
+    const el=document.createElement('div'); el.className='s';
+    el.innerHTML='<div class="l"><span>'+AXJA[k]+'</span><b class="mono" id="gv_'+a+'">'+G[a]+'</b></div>'+
+                 '<input type="range" min="0" max="100" value="'+G[a]+'" id="gs_'+a+'">';
+    g.appendChild(el);
+    el.querySelector('input').addEventListener('input',e=>{
+      G[a]=+e.target.value; document.getElementById('gv_'+a).textContent=G[a];
+      buildGenerated(); refreshGen(); requestAI();
+    });
+  });
+  const rw=document.createElement('div'); rw.className='s'; rw.style.gridColumn='1/-1';
+  rw.innerHTML='<button class="btn" id="btnRegen" style="padding:7px 14px;font-size:10.5px">AIで作り直す</button>';
+  g.appendChild(rw);
+  rw.querySelector('button').onclick=()=>{ aiCache.delete(gSeed()); aiImg=null; requestAI(true); };
+  const fw=document.createElement('div'); fw.className='s'; fw.style.gridColumn='1/-1';
+  fw.innerHTML='<div class="l"><span>パッケージ形態</span></div><div id="gForms" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"></div>';
+  g.appendChild(fw);
+  Object.keys(FORMJA).forEach(f=>{
+    const b=document.createElement('button'); b.className='btn'; b.style.padding='6px 11px'; b.style.fontSize='10px';
+    b.textContent=FORMJA[f]; b.dataset.f=f;
+    b.onclick=()=>{G.form=f;buildGenerated();refreshGen();requestAI();};
+    fw.querySelector('#gForms').appendChild(b);
+  });
+}
+
+/* ============================================================
+   入力
+   ============================================================ */
+function onTap(mx,my){
+  if(my>H-96) return;      // 下部のCTA帯は無視
+  if(MODE==='DETAIL'){ closeDetail(); return; }
+  if(MODE!=='FLOAT') return;
+  for(let i=snacks.length-1;i>=0;i--){
+    if(snacks[i].hit(mx,my)){ openDetail(snacks[i]); return; }
+  }
+  startConcept();
+}
+C.addEventListener('pointerdown',e=>onTap(e.clientX,e.clientY));
+$('pClose').onclick=e=>{e.stopPropagation();closeDetail();};
+$('btnGen').onclick=e=>{e.stopPropagation();startConcept();};
+$('btnBack').onclick=e=>{
+  e.stopPropagation();
+  $('ov').classList.remove('on'); kinOn=false; $('genui').classList.remove('on'); $('genui').classList.remove('ready'); $('cta').style.display='';
+  $('panel').classList.remove('on');
+  $('btnBack').style.display='none';
+  MODE='FLOAT'; selected=null; document.body.classList.remove('genmode');
+  rvOn=false; try{ $('rvVid').pause(); }catch(e){}
+  for(const s of snacks){ s.esc=0; s.talpha=1; s.tdisp=1; s.terode=1; s.tw=s.baseW; }
+  layout();
+};
+$('qMake').onclick=()=>{ if(rvOn||gStep!=='READY') return;
+  gStep='REVEAL'; orbHide('qMake');       // ここでは粒子を出さない。押した瞬間に実写へ入る
+  $('genui').classList.remove('ready');
+  document.querySelector('.qhead').style.opacity='0';
+  aiImg=null; aiText=''; requestAI(true); requestAIText(); revealStart(); };
+$('qAgain').onclick=()=>{ gStep='INTRO'; qReset(); startGen(); };
+$('qBack').onclick=()=>$('btnBack').click();
+addEventListener('resize',resize);
+addEventListener('keydown',e=>{ if(e.key==='Escape') $('btnBack').click(); });
+
+/* ============================================================
+   起動
+   ============================================================ */
+function boot(){
+  if(typeof REVEAL_SRC!=='undefined') $('rvVid').src=REVEAL_SRC;
+  const n=Math.min(OKASHI.length, (typeof PARTICLE_DATA!=='undefined'?PARTICLE_DATA.length:54));
+  for(let i=0;i<n;i++) if(!OKASHI[i].skip) snacks.push(new Snack(i));   // 見た目が同一の重複は出さない
+  resize(); initDust(); 
+  snacks.forEach(s=>{
+    const im=new Image();
+    im.onload=()=>{ s.img=im; loaded++; };
+    im.src='images/'+String(s.i+1).padStart(2,'0')+'.jpg';   // 画像は元の通し番号で引く
+  });
+  requestAnimationFrame(frame);
+  // 検証用：?m=detail&i=54 / ?m=concept / ?m=gen で初期状態を指定できる
+  const qs=new URLSearchParams(location.search);
+  if(qs.get('m')) document.body.classList.add('nofx');
+  if(qs.get('m')==='detail') setTimeout(()=>openDetail(snacks[(+qs.get('i')||1)-1]||snacks[0]),900);
+  if(qs.get('m')==='concept'){ startConcept(); if(qs.has('seek')) setTimeout(()=>{ showPage(); seekTo(parseFloat(qs.get('seek'))); },60); }
+  if(qs.get('m')==='gen'){ startGen(); if(qs.has('seek')) setTimeout(()=>seekTo(parseFloat(qs.get('seek'))),80); }
+  if(qs.get('aidebug')){ setTimeout(async()=>{
+      try{
+        const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`,
+          {method:'POST',headers:{'Content-Type':'application/json'},
+           body:JSON.stringify({contents:[{parts:[{text:'白背景に浮かぶ架空のお菓子のパッケージ。'}]}],
+             generationConfig:{responseModalities:["IMAGE"],seed:7}})});
+        const d=await r.json();
+        const p=(d.candidates?.[0]?.content?.parts||[]).find(x=>x.inlineData);
+        document.title='AIDEBUG:'+r.status+':'+(p?'IMG_OK':'NO_IMG')+':'+JSON.stringify(d).slice(0,80);
+      }catch(e){ document.title='AIDEBUG:EXC:'+(e&&e.message||e); }
+    },300); }
+}
+/* ============================================================
+   調整パネル（Pキー）。★ は粒子を作り直すので「やり直す」で反映される
+   ============================================================ */
+const TUNE=[
+  ['t'],
+  ['h','レイヤー1'],
+  ['L0a','濃さ',0,1,.01],['L0n','本数 ★',0,2,.05],['L0sp','散らばり ★',0,8,.1],['L0z','粒の大きさ',1,4,1],
+  ['h','レイヤー2'],
+  ['L1a','濃さ',0,1,.01],['L1n','本数 ★',0,2,.05],['L1sp','散らばり ★',0,8,.1],['L1z','粒の大きさ',1,4,1],
+  ['h','レイヤー3'],
+  ['L2a','濃さ',0,1,.01],['L2n','本数 ★',0,2,.05],['L2sp','散らばり ★',0,8,.1],['L2z','粒の大きさ',1,4,1],
+  ['h','共通'],
+  ['grid','格子の細かさ ★',200,900,10],['blink','明滅で出る割合',.3,1,.01],
+  ['h','色 ★'],
+  ['sat','彩度',.2,2.5,.05],['lit','明度',.6,1.15,.01],['hueSpan','色相の幅',.1,1.6,.02],
+  ['h','速度'],
+  ['rVortex','渦',.2,1.5,.05],['rBurst','破裂',.2,1.5,.05],
+  ['blow','破裂の勢い',.5,8,.1],['blowVar','奥行きのばらつき',0,5,.1],['streak','尾の長さ',0,4,.1],
+  ['blowFade','破裂の消え',.2,3,.05],['blowZ','手前の粒の最大倍率',1,8,.5],['stream','後続が流れる秒数',0,4,.1],
+  ['h','白'],
+  ['wIn','満ちる',.2,3,.05],['wHold','白のまま',0,3,.05],['wOut','引く',.3,4,.05]
+];
+const fmtP=v=>(v>=100?String(v):v>=10?v.toFixed(1):v.toFixed(2));
+const getP=k=>{ const m=k.match(/^L(\d)(.+)$/); return m? RVP.L[+m[1]][m[2]] : RVP[k]; };
+const setP=(k,v)=>{ const m=k.match(/^L(\d)(.+)$/); if(m) RVP.L[+m[1]][m[2]]=v; else RVP[k]=v; };
+function buildTune(){
+  const el=$('tune'); let h='';
+  TUNE.forEach(t=>{
+    if(t[0]==='t'){
+      h+='<div class="tl"><button id="tPlay">▶</button>'
+        +'<input type="range" id="tTime" min="0" max="6" step="0.01" value="0">'
+        +'<b id="tvTime">0.00</b></div>'
+        +'<div class="note" style="margin:2px 0 0">つまむと時間が止まります。★は「やり直す」で反映。</div>';
+      return; }
+    if(t[0]==='h'){ h+='<h4>'+t[1]+'</h4>'; return; }
+    const [k,label,mn,mx,st]=t;
+    h+='<div class="r"><span>'+label+'</span><input type="range" data-k="'+k+'" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+getP(k)+'"><b id="tv_'+k+'">'+fmtP(getP(k))+'</b></div>';
+  });
+  h+='<div class="btns"><button id="tRe">やり直す</button><button id="tCopy">数値をコピー</button><button id="tReset">初期値</button></div>';
+  el.innerHTML=h;
+  el.querySelectorAll('input[data-k]').forEach(inp=>{
+    inp.oninput=()=>{ const k=inp.dataset.k; setP(k,+inp.value); $('tv_'+k).textContent=fmtP(getP(k)); };
+  });
+  // ── タイムライン ──
+  const v=$('rvVid'), tt=$('tTime');
+  tt.max=(v.duration||6).toFixed(2);
+  tt.oninput=()=>{ rvScrub=true; rvOn=true; gStep='REVEAL'; rvIntro=0; rvFlash=0; gShow=0;
+    $('veil').style.opacity='0'; $('tPlay').textContent='▶';
+    $('genui').classList.remove('ready');      // 前回の結果表示が演出に重なるのを防ぐ
+    try{ v.pause(); v.currentTime=+tt.value; }catch(e){}
+    $('tvTime').textContent=(+tt.value).toFixed(2); };
+  $('tPlay').onclick=()=>{
+    $('genui').classList.remove('ready');
+    if(rvScrub){ rvScrub=false; $('tPlay').textContent='❚❚'; try{ v.play().catch(()=>{}); }catch(e){} }
+    else { rvScrub=true; $('tPlay').textContent='▶'; try{ v.pause(); }catch(e){} }
+  };
+  setInterval(()=>{ if(!$('tune').classList.contains('on')||rvScrub) return;
+    const t=$('rvVid').currentTime; tt.value=t; $('tvTime').textContent=t.toFixed(2); },120);
+  $('tRe').onclick=()=>{ rvScrub=false; $('tPlay').textContent='❚❚'; rvReplay(); };
+  $('tReset').onclick=()=>{
+    RVP.L=JSON.parse(JSON.stringify(TUNE_DEF.L));
+    Object.keys(TUNE_DEF).forEach(k=>{ if(k!=='L') RVP[k]=TUNE_DEF[k]; });
+    syncTune(); rvReplay(); };
+  $('tCopy').onclick=()=>{
+    const lines=['grid: '+RVP.grid];
+    RVP.L.forEach((l,i)=>lines.push('レイヤー'+(i+1)+': 濃さ '+l.a+' / 本数 '+l.n+' / 散らばり '+l.sp+' / 大きさ '+l.z));
+    ['blink','sat','lit','hueSpan','rVortex','rBurst','blow','blowVar','streak','blowFade','blowZ','stream','wIn','wHold','wOut'].forEach(k=>lines.push(k+': '+RVP[k]));
+    navigator.clipboard.writeText(lines.join('\n')).then(()=>{ $('tCopy').textContent='コピーしました';
+      setTimeout(()=>$('tCopy').textContent='数値をコピー',1400); }).catch(()=>{});
+  };
+}
+const TUNE_DEF=JSON.parse(JSON.stringify(RVP));
+function syncTune(){
+  $('tune').querySelectorAll('input[data-k]').forEach(inp=>{
+    const k=inp.dataset.k; inp.value=getP(k); $('tv_'+k).textContent=fmtP(getP(k));
+  });
+}
+/* 演出だけ最初からやり直す。生成物はそのまま使うのでAPIは呼ばない */
+function rvReplay(){
+  if(MODE!=='GEN') return;
+  $('veil').style.opacity='0'; rvFlash=0; gShow=0;
+  $('genui').classList.remove('ready');
+  document.querySelector('.qhead').style.opacity='0';
+  $('qWrap').style.display='none';
+  ['orbStart','qMake'].forEach(i=>$(i).classList.remove('on','show','go'));
+  gStep='REVEAL'; revealStart();
+  const v=$('rvVid'); try{ v.pause(); v.currentTime=0; }catch(e){}
+}
+addEventListener('keydown',e=>{
+  if(e.key!=='p'&&e.key!=='P') return;
+  if(/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||'')) return;
+  const el=$('tune');
+  if(!el.innerHTML) buildTune();
+  el.classList.toggle('on');
+});
+window.__dbg=()=>({mode:MODE,step:gStep,rvOn,rvT:+rvT.toFixed(2),ct:+($('rvVid').currentTime||0).toFixed(2),
+  rate:$('rvVid').playbackRate,wait:rvWaiting,rvRare,aiImg:!!aiImg,aiMs,aiErr});
+boot();
+</script>
+</body>
+</html>
