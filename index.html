@@ -104,11 +104,16 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:
 .panel .idx{font-size:10px;letter-spacing:.28em;color:var(--sub)}
 .panel h2{font-size:23px;font-weight:800;margin:8px 0 2px;line-height:1.25}
 .panel .meta{font-size:11px;color:var(--sub);letter-spacing:.06em;margin-bottom:22px}
-.row{margin-bottom:11px}
-.row .l{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;margin-bottom:4px;color:var(--sub)}
-.row .l b{color:var(--ink);font-weight:700}
-.row .t{height:2px;background:var(--line);position:relative}
-.row .t i{position:absolute;left:0;top:0;height:100%;background:var(--accent);
+/* 味の9軸。数字が主役なので等幅で桁を揃え、目盛りを薄く敷いて量として読ませる */
+.row{margin-bottom:13px}
+.row .l{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10px;letter-spacing:.12em;margin-bottom:5px;color:var(--sub)}
+.row .l b{color:var(--ink);font:700 11.5px/1 "SF Mono",ui-monospace,monospace;
+  font-variant-numeric:tabular-nums}
+.row .t{height:3px;background:var(--line);position:relative;border-radius:2px;overflow:hidden;
+  background-image:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(13,30,60,.16) calc(10% - 1px) 10%)}
+.row .t i{position:absolute;left:0;top:0;height:100%;border-radius:2px;
+  background:linear-gradient(90deg,rgba(0,194,232,.4),var(--accent));
   transition:width .7s cubic-bezier(.16,1,.3,1)}
 .panel .close{position:absolute;top:26px;right:24px;font-size:19px;color:var(--sub);cursor:pointer;line-height:1}
 
@@ -208,10 +213,20 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 .orb.on{display:flex}
 .orb.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .orb.go{opacity:0;transform:translate(-50%,-50%) scale(1.5)}
+/* 白い画面に白い丸なので、放っておくと「ここが押せる」と気づかれない。
+   息をするようにゆっくり明滅させて、押す場所を一箇所に絞る */
+.orb.show::after{content:'';position:absolute;inset:-2px;border-radius:50%;
+  border:1px solid rgba(0,194,232,.55);animation:orbPulse 2.6s ease-out infinite;pointer-events:none}
+@keyframes orbPulse{
+  0%{transform:scale(.94);opacity:0}
+  22%{opacity:.85}
+  100%{transform:scale(1.16);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){ .orb.show::after{animation:none;opacity:.5} }
 .orb span{font-size:15px;font-weight:700;letter-spacing:.16em;text-indent:.16em;line-height:1.95;
   text-align:center;pointer-events:none;white-space:nowrap}
-.orb small{font:400 9.5px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.3em;
-  color:var(--cy);text-indent:.3em;pointer-events:none}
+.orb small{font:600 10.5px/1 inherit;letter-spacing:.34em;
+  color:var(--cy);text-indent:.34em;pointer-events:none}
 .orb:hover{transform:translate(-50%,-50%) scale(1.03)}
 .orb:hover::before{border-color:rgba(0,194,232,.34)}
 .qback{position:fixed;left:44px;bottom:44px;z-index:7;font:inherit;font-size:11px;letter-spacing:.22em;
@@ -223,6 +238,22 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 .gres .gname{font-size:26px;letter-spacing:.18em;font-weight:800;margin-bottom:10px}
 .gres .gcopy{font-size:12px;letter-spacing:.08em;line-height:1.95;color:var(--sub);
   max-width:min(760px,80vw);margin:0 auto 22px}
+/* 作られたお菓子の9軸。結果は横長の画面で見るので3列に畳む */
+.gbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 26px;
+  max-width:min(760px,84vw);margin:0 auto 22px;text-align:left}
+.gbars .b{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:baseline}
+.gbars .b i{grid-column:1/-1;display:block;height:3px;background:var(--line);position:relative;
+  border-radius:2px;overflow:hidden}
+.gbars .b i::after{content:'';position:absolute;left:0;top:0;height:100%;width:var(--w,0%);
+  background:linear-gradient(90deg,rgba(0,194,232,.45),var(--cy));
+  border-radius:2px;transition:width 1.1s cubic-bezier(.16,1,.3,1)}
+.gbars .b span{font-size:9.5px;letter-spacing:.14em;color:var(--sub)}
+.gbars .b b{font:700 10.5px/1 "SF Mono",ui-monospace,monospace;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+@media(max-width:820px){
+  .gbars{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 16px;max-width:88vw}
+  .gbars .b span{font-size:9px;letter-spacing:.08em}
+}
 .gqr{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px}
 .qrbox{width:74px;height:74px;background:#0d1117}
 .gqr span{font-size:9.5px;letter-spacing:.24em;color:var(--sub)}
@@ -309,13 +340,16 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
     <div class="qaxis"><div class="qrule"></div><span id="qL">あまい</span><b id="qR">しょっぱい</b></div>
   </div>
 
-  <button class="orb" id="orbStart"><span>まだないおかしを<br>つくる</span><small>TAP TO BEGIN</small></button>
-  <button class="orb" id="qMake"><span>新たなお菓子を<br>作り出す</span><small>TAP TO GENERATE</small></button>
+  <!-- 本文をひらがなに寄せているのに、押す指示だけ英語だと読む人が置き去りになる -->
+  <button class="orb" id="orbStart"><span>まだないおかしを<br>つくる</span><small>ここを おす</small></button>
+  <button class="orb" id="qMake"><span>あたらしいおかしを<br>つくりだす</span><small>ここを おす</small></button>
   <button class="qback" id="qBack">もどる</button>
 
   <div class="gres" id="gRes">
     <div class="gname" id="gName"></div>
     <div class="gcopy" id="gCopy"></div>
+    <!-- 棚のお菓子を押したときと同じ9軸を、作られたお菓子にも出す -->
+    <div class="gbars" id="gBars"></div>
     <button class="qagain" id="qAgain">もう一度つくる</button>
   </div>
   <div class="gmeta mono" id="gMeta"></div>
@@ -725,6 +759,11 @@ function startConcept(){
   $('cta').style.display='none';
   $('btnBack').style.display='';
 }
+/* もどるでコンセプトの途中に戻ってくるときは、指定のページから始める */
+function startConceptAt(p){
+  startConcept();
+  page=p;
+}
 function showPage(){
   const p=PAGES[page];
   $('ovK').textContent=p.k; $('ovH').textContent=p.h;
@@ -983,8 +1022,9 @@ function buildGenerated(){
 function drawGenerated(dt){
   const img = aiImg || genCanvas;
   if(!img) return;
-  // 文字欄の高さを画面比で見る。縦画面で固定値を引くと絵が上に寄ってしまう
-  const txtH = W<820 ? H*0.30 : 250;
+  // 文字欄の高さを画面比で見る。縦画面で固定値を引くと絵が上に寄ってしまう。
+  // 9軸のパラメーターを足したぶん、文字欄はここまで伸びている
+  const txtH = W<820 ? H*0.44 : 380;
   const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=(H-txtH)*0.98;
   const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
   let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
@@ -1111,8 +1151,10 @@ function knockWhite(im){
    検証や調整でAPI代を使いたくない時だけ false にする。 */
 const USE_AI=false;
 let aiImg=null, aiBusy=false, aiTimer=null, aiT0=0, aiMs=0, aiErr='', aiCalls=0;
+/* 612枚から引いた1件。API版では使わないが、もどるの処理が参照するので必ず在る */
+let packItem=null;
 /* 612枚の束。読み終わるまで数百ms。待機画面の間に済むので待たせない */
-let packPicker=null, packItem=null;
+let packPicker=null;
 fetch('okashi612.json').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); })
   .catch(e=>{ console.error('okashi612.json',e); });
 const aiCache=new Map();
@@ -1786,8 +1828,24 @@ function gResult(){
   const nb=nearest(1)[0], maxD=Math.sqrt(9*100*100);
   const nv=Math.min(100,Math.round(nb.dist/maxD*100*3.0));
   $('gCopy').textContent = (packItem && packItem.text) || aiText || describe();
+  gBars();
   $('gMeta').textContent = location.search.includes('aidebug') ? ('SEED '+gSeed()+'　API '+aiCalls+'回') : '';
   el.classList.add('ready');
+}
+/* 作られたお菓子の9軸を、棚のお菓子を押したときと同じ形で出す。
+   自分の答えが数値になって返ってくるところまで見せないと、
+   「味を決めれば形が決まる」が主張のままで終わる。 */
+function gBars(){
+  const box=$('gBars'); if(!box) return;
+  box.textContent='';
+  AXES.forEach((a,k)=>{
+    const v=G[a];
+    const el=document.createElement('div'); el.className='b';
+    el.innerHTML='<span>'+AXJA[k]+'</span><b>'+String(v).padStart(2,'0')+'</b><i></i>';
+    box.appendChild(el);
+    // 0%から描いてから伸ばす。数字が最初から埋まっていると、決まった感じが出ない
+    requestAnimationFrame(()=>{ el.querySelector('i').style.setProperty('--w',v+'%'); });
+  });
 }
 /* 結果の文章は「そのお菓子がどんな菓子か」を2文で。画像と同時に走らせるので待ち時間は増えない。 */
 let aiText='';
@@ -1891,8 +1949,8 @@ function onTap(mx,my){
 C.addEventListener('pointerdown',e=>onTap(e.clientX,e.clientY));
 $('pClose').onclick=e=>{e.stopPropagation();closeDetail();};
 $('btnGen').onclick=e=>{e.stopPropagation();startConcept();};
-$('btnBack').onclick=e=>{
-  e.stopPropagation();
+/* 待機画面まで一気に戻す。もどるの終点 */
+function toFloat(){
   $('ov').classList.remove('on'); kinOn=false; $('genui').classList.remove('on'); $('genui').classList.remove('ready'); $('cta').style.display='';
   $('panel').classList.remove('on');
   $('btnBack').style.display='none';
@@ -1900,6 +1958,47 @@ $('btnBack').onclick=e=>{
   rvOn=false; try{ $('rvVid').pause(); }catch(e){}
   for(const s of snacks){ s.esc=0; s.talpha=1; s.tdisp=1; s.terode=1; s.tw=s.baseW; }
   layout();
+}
+/* もどるは「1つ前」へ。
+   5問目で押し間違えた人が最初からやり直しになるのは、展示では致命的。 */
+$('btnBack').onclick=e=>{
+  e.stopPropagation();
+  if(MODE==='DETAIL'){ closeDetail(); return; }
+  if(MODE==='CONCEPT'){
+    if(page>0){ page--; showPage(); } else toFloat();
+    return;
+  }
+  if(MODE==='GEN'){
+    // 結果・生成中 → 最後の質問へ。引いたお菓子は捨てて引き直させる
+    if(gStep==='RESULT'||gStep==='REVEAL'){
+      rvOn=false; try{ $('rvVid').pause(); $('rvVid').currentTime=0; }catch(e){}
+      packItem=null; aiImg=null; aiErr='';
+      $('genui').classList.remove('ready'); $('veil').style.opacity='0'; rvFlash=0; gShow=0;
+      gStep='ASK'; qDone=false; qIdx=Q.length-1; qSel=qAns[qIdx];
+      ['orbStart','qMake'].forEach(i=>$(i).classList.remove('on','show','go'));
+      $('qWrap').style.display=''; document.querySelector('.qhead').style.opacity='1';
+      qRender(-1);
+      return;
+    }
+    // 「つくりだす」待ち → 最後の質問へ
+    if(gStep==='READY'){
+      orbHide('qMake'); gStep='ASK'; qDone=false; qIdx=Q.length-1; qSel=qAns[qIdx];
+      $('qWrap').style.display=''; qRender(-1);
+      return;
+    }
+    // 質問中 → 1問前へ。先頭ならコンセプトの最後の画面へ
+    if(gStep==='ASK'){
+      if(qIdx>0){ qIdx--; qSel=qAns[qIdx]; qRender(-1); return; }
+      $('genui').classList.remove('on'); document.body.classList.remove('genmode');
+      MODE='CONCEPT'; page=PAGES.length-1; startConceptAt(page);
+      return;
+    }
+    // 球体を出しただけ → コンセプトの最後の画面へ
+    $('genui').classList.remove('on'); document.body.classList.remove('genmode');
+    MODE='CONCEPT'; page=PAGES.length-1; startConceptAt(page);
+    return;
+  }
+  toFloat();
 };
 $('qMake').onclick=()=>{ if(rvOn||gStep!=='READY') return;
   gStep='REVEAL'; orbHide('qMake');       // ここでは粒子を出さない。押した瞬間に実写へ入る
