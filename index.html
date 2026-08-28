@@ -238,8 +238,8 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 @media (prefers-reduced-motion:reduce){ .orb.show::after{animation:none;opacity:.5} }
 .orb span{font-size:15px;font-weight:700;letter-spacing:.16em;text-indent:.16em;line-height:1.95;
   text-align:center;pointer-events:none;white-space:nowrap}
-.orb small{font:600 10.5px/1 inherit;letter-spacing:.34em;
-  color:var(--cy);text-indent:.34em;pointer-events:none}
+.orb small{font:400 9.5px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.3em;
+  color:var(--cy);text-indent:.3em;pointer-events:none}
 .orb:hover{transform:translate(-50%,-50%) scale(1.03)}
 .orb:hover::before{border-color:rgba(0,194,232,.34)}
 .qback{position:fixed;left:44px;bottom:44px;z-index:7;font:inherit;font-size:11px;letter-spacing:.22em;
@@ -249,11 +249,11 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   transform:translateY(14px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
 .genui.ready .gres{opacity:1;transform:none;pointer-events:auto}
 .gres .gname{font-size:26px;letter-spacing:.18em;font-weight:800;margin-bottom:10px}
-.gres .gcopy{font-size:12px;letter-spacing:.08em;line-height:1.95;color:var(--sub);
-  max-width:min(760px,80vw);margin:0 auto 22px}
+.gres .gcopy{font-size:13px;letter-spacing:.06em;line-height:1.95;color:#3c434f;
+  max-width:min(1040px,88vw);margin:0 auto 22px}
 /* 作られたお菓子の9軸。結果は横長の画面で見るので3列に畳む */
 .gbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 26px;
-  max-width:min(760px,84vw);margin:0 auto 22px;text-align:left}
+  max-width:min(1040px,88vw);margin:0 auto 22px;text-align:left}
 .gbars .b{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:baseline}
 .gbars .b i{grid-column:1/-1;display:block;height:3px;background:var(--line);position:relative;
   border-radius:2px;overflow:hidden}
@@ -353,9 +353,9 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
     <div class="qaxis"><div class="qrule"></div><span id="qL">あまい</span><b id="qR">しょっぱい</b></div>
   </div>
 
-  <!-- 本文をひらがなに寄せているのに、押す指示だけ英語だと読む人が置き去りになる -->
-  <button class="orb" id="orbStart"><span>まだないおかしを<br>つくる</span><small>ここを おす</small></button>
-  <button class="orb" id="qMake"><span>あたらしいおかしを<br>つくりだす</span><small>ここを おす</small></button>
+  <!-- 「ここを おす」は説明が前に出すぎて野暮だった。押す場所は縁の明滅で示す -->
+  <button class="orb" id="orbStart"><span>まだないおかしを<br>つくる</span><small>TAP TO BEGIN</small></button>
+  <button class="orb" id="qMake"><span>あたらしいおかしを<br>つくりだす</span><small>TAP TO GENERATE</small></button>
   <button class="qback" id="qBack">もどる</button>
 
   <div class="gres" id="gRes">
@@ -1042,13 +1042,17 @@ function buildGenerated(){
 function drawGenerated(dt){
   const img = aiImg || genCanvas;
   if(!img) return;
-  // 文字欄の高さを画面比で見る。縦画面で固定値を引くと絵が上に寄ってしまう。
-  // 9軸のパラメーターを足したぶん、文字欄はここまで伸びている
-  const txtH = W<820 ? H*0.44 : 380;
-  const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=(H-txtH)*0.98;
+  /* 文字欄の高さを比率で見積もっていたが、名前が絵に重なることがあった。
+     見積もりをやめ、文字欄の上端を実測して、絵はその上だけに置く。
+     絵と文字が重なるのは、展示では一番やってはいけない壊れ方。 */
+  const gr=$('gRes');
+  let limitY = H*0.58;
+  if(gr){ const r=gr.getBoundingClientRect(); if(r.height>8) limitY = r.top - 20; }
+  limitY = Math.max(H*0.30, Math.min(limitY, H*0.86));   // 実測が異常でも絵が消えないようにする
+  const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=limitY*0.88;   // 回転と揺れのぶん余らせる
   const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
   let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
-  const cx=W/2, cy=(H-txtH*0.86)*0.50;
+  const cx=W/2, cy=limitY*0.5;
   const rot=fsin(T*0.6)*10*Math.PI/180, bob=fsin(T*0.9)*h*0.02;
   // 白の下ですでに出来上がっている。白が引いた時には、もう浮かんでいる
   X.save(); X.translate(cx,cy+bob); X.rotate(rot);
@@ -1175,7 +1179,8 @@ let aiImg=null, aiBusy=false, aiTimer=null, aiT0=0, aiMs=0, aiErr='', aiCalls=0;
 let packItem=null;
 /* 612枚の束。読み終わるまで数百ms。待機画面の間に済むので待たせない */
 let packPicker=null;
-fetch('okashi612.json').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); })
+/* 版番号を付けて読む。付けないとブラウザが古い紹介文を握ったままになる */
+fetch('okashi612.json?v=1787917177').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); })
   .catch(e=>{ console.error('okashi612.json',e); });
 const aiCache=new Map();
 function gHash(t){ let h=2166136261; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
@@ -1208,6 +1213,12 @@ function requestAI(now){
     if(!packPicker){ aiErr='おかしの束が読めていない'; refreshGen(); return; }
     aiBusy=true; aiImg=null; aiErr='';
     packItem = packPicker.pick(qAns.map(v=>v===undefined?4:v));
+    // 文字欄は透明のまま先に埋めておく。
+    // 空のまま生成演出に入ると、文字欄が低く測られて絵が大きくなり、
+    // 結果が出た瞬間に絵と名前が重なる
+    $('gName').textContent = packItem.name;
+    $('gCopy').textContent = packItem.text;
+    gBars();
     const im=new Image();
     im.onload=()=>{
       try{ const kn=knockWhite(im); aiImg=kn; aiPts=samplePartsFrom(kn); }
