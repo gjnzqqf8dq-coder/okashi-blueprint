@@ -177,20 +177,33 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   letter-spacing:.1em;margin:0 .55em 0 .34em;vertical-align:.06em}
 .qtitle em:last-child{margin-right:0}
 .qval{font-size:11px;letter-spacing:.24em;color:var(--sub);margin-bottom:14px}
+/* 9個の丸。全部同じ白丸だと世論調査の用紙になる。
+   左端の味から右端の味へ、丸そのものを色で渡していく。
+   ＝答えている最中も「味を選んでいる」ことが目に見える */
 .qcircles{display:flex;justify-content:center;align-items:center;gap:clamp(14px,2.6vw,42px);position:relative}
 .qcircles button{width:clamp(38px,3.4vw,54px);height:clamp(38px,3.4vw,54px);border-radius:50%;
-  border:1px solid var(--ink);background:none;cursor:pointer;position:relative;padding:0;
-  transition:transform .45s cubic-bezier(.34,1.56,.64,1),border-color .3s}
-.qcircles button:hover{transform:scale(1.12);border-color:var(--cy)}
-.qcircles button.on{border-color:var(--ink)}
-.qcircles button.on::after{content:'';position:absolute;left:50%;top:50%;width:11px;height:11px;
-  margin:-5.5px 0 0 -5.5px;border-radius:50%;background:var(--cy);
+  border:1.5px solid var(--qc,#0d1117);background:var(--qbg,transparent);
+  cursor:pointer;position:relative;padding:0;
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1),border-color .3s,background .3s,box-shadow .3s}
+.qcircles button:hover{transform:scale(1.14);box-shadow:0 0 0 6px var(--qh,rgba(0,194,232,.14))}
+.qcircles button.on{transform:scale(1.2);background:var(--qc,#0d1117);border-color:var(--qc,#0d1117);
+  box-shadow:0 6px 20px -6px var(--qc,#0d1117)}
+.qcircles button.on::after{content:'';position:absolute;left:50%;top:50%;width:13px;height:13px;
+  margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;
   animation:qpop .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes qpop{0%{transform:scale(0)}100%{transform:scale(1)}}
+/* 押した瞬間の輪。触って何も起きないと、次を押す気にならない */
+.qcircles button.hit::before{content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid var(--qc,#0d1117);animation:qring .55s cubic-bezier(.16,1,.3,1) forwards;pointer-events:none}
+@keyframes qring{0%{transform:scale(.8);opacity:.9}100%{transform:scale(2.1);opacity:0}}
+
 .qaxis{position:relative;margin-top:30px;display:flex;justify-content:space-between;align-items:flex-start;
   width:min(780px,74vw);margin-left:auto;margin-right:auto;
   font-size:21px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
-.qaxis span,.qaxis b{font-weight:700}
+.qaxis span,.qaxis b{font-weight:700;display:flex;flex-direction:column;align-items:center;gap:9px}
+/* 両端の味に絵をつける。文字だけだと読む作業になる */
+.qaxis .ic{display:block;width:clamp(46px,4.2vw,64px);height:clamp(46px,4.2vw,64px)}
+.qaxis .ic svg{width:100%;height:100%;overflow:visible}
 .qrule{position:absolute;left:0;right:0;top:-16px;height:9px;
   background:repeating-linear-gradient(90deg,#c9ced6 0 1px,transparent 1px 32px);
   border-top:1px solid #dfe3e9}
@@ -663,6 +676,7 @@ function tick(dt){
     else if(gStep==='RESULT'){ gShow=1; if(aiImg) drawGenerated(dt); drawFlash(dt); }
     else { orbDust(); qBurst(); }
     drawOrbFx(dt);
+    drawQFx(dt);
   }
   updateHUD();
 }
@@ -733,16 +747,22 @@ function closeDetail(){
 /* ============================================================
    コンセプト（散らばる → 2画面）
    ============================================================ */
+/* 3枚の導入。
+   「貧しくても削らなかった」から始めていたが、入り口が暗いうえに
+   読んだ人が責められている気になる。同じ家計調査の数字のまま、
+   「削らなかった」ではなく「買えた」の話に置き換えている。
+   締めも変えた。ここで作られるものは定番になる水準ではない。
+   言い過ぎた約束は、出てきた一枚を安っぽくする。 */
 const PAGES=[
  {k:'CONCEPT 01 / 03',
-  h:'日本人は貧しくても、\nお菓子だけは削らなかった。',
-  p:'家計に占める菓子の割合は、昭和40年から平成20年まで約6%で動かなかった。収入が減っても、菓子の支出だけは減らない。お菓子は嗜好品ではなく、生活の一部として組み込まれている。'},
+  h:'いつの時代も、お菓子は\n暮らしの潤いだった。',
+  p:'家計に占めるお菓子の割合は、昭和40年から平成20年まで約6%のまま動かなかった。景気が良くても悪くても変わらない。お菓子は余ったお金で買うものではなく、暮らしにはじめから組み込まれている。'},
  {k:'CONCEPT 02 / 03',
-  h:'棚に並ぶ定番は、\n半世紀前に生まれた。',
-  p:'ベビースターは1959年、ポッキーは1966年。いま当たり前に手に取るものは、親が子どもだった頃に設計されている。子どもの頃に食べたものが、その人にとっての「お菓子」の定義になるからだ。'},
+  h:'百円で、まだ知らない味に\n会えるからだ。',
+  p:'日本では年に千を超える新しいお菓子が生まれ、そのほとんどが一年で消えていく。この入れ替わりの速さが、包みの密度と食感の精度を、世界のどこにもない水準まで押し上げた。'},
  {k:'CONCEPT 03 / 03',
-  h:'では、50年後の定番を\n君は作り出せるか。',
-  p:'あまいか、しょっぱいか。ザクザクか、とろけるか。5回の選択で味が決まると、そのお菓子の形も決まる。まだ世の中にない一点が、ここに現れる。'}
+  h:'まだ食べたことのない\nお菓子を、作ってみる。',
+  p:'あまいか、しょっぱいか。ひとりで食べるか、みんなで食べるか。五回答えるだけで、味も、形も、包みも決まる。世の中にまだない一点が、ここに現れる。'}
 ];
 let page=0;
 function startConcept(){
@@ -1668,6 +1688,37 @@ const Q = [
   {l:'ずっと同じ味',   r:'途中で変わる'},
   {l:'ひとりで',       r:'みんなで'},
 ];
+
+/* 両端の味を、色と絵で見せる。
+   9個の白丸に文字が添えてあるだけだと、味の話をしているのに
+   世論調査の用紙にしか見えない。色は左の味から右の味へ丸の上で混ざっていく。 */
+const QSKIN = [
+  {lc:[236, 96,150], rc:[ 40,104,196]},   // あまい ⇔ しょっぱい
+  {lc:[196,106, 36], rc:[224,150,182]},   // ザクザク ⇔ とろける
+  {lc:[214, 68, 56], rc:[240,178, 12]},   // ひと口で終わる ⇔ 手が止まらない
+  {lc:[ 42,156,112], rc:[132, 84,201]},   // ずっと同じ味 ⇔ 途中で変わる
+  {lc:[ 74, 91,115], rc:[245,132, 47]},   // ひとりで ⇔ みんなで
+];
+/* 絵は具体物を描かない。粒・かたまり・数・帯だけで、味の違いを図にする */
+const QICON = [
+  // 角砂糖のかたまり / 塩の細かい結晶
+  ['<rect x="8" y="20" width="24" height="24" rx="3.5"/><rect x="22" y="6" width="18" height="18" rx="3"/>',
+   '<path d="M10 22l6-6 6 6-6 6z"/><path d="M26 12l6-6 6 6-6 6z"/><path d="M30 32l6-6 6 6-6 6z"/><path d="M16 38l4.5-4.5L25 38l-4.5 4.5z"/>'],
+  // 割れた破片 / 垂れる雫
+  ['<path d="M8 30l8-16 5 9 6-11 7 13 6-6v11z"/>',
+   '<path d="M24 8c6 9 10 13 10 18a10 10 0 1 1-20 0c0-5 4-9 10-18z"/>'],
+  // 大きなひと粒 / 小さな粒がたくさん
+  ['<circle cx="24" cy="24" r="13"/>',
+   '<circle cx="13" cy="15" r="4"/><circle cx="26" cy="11" r="4"/><circle cx="36" cy="19" r="4"/><circle cx="16" cy="29" r="4"/><circle cx="28" cy="26" r="4"/><circle cx="34" cy="34" r="4"/><circle cx="21" cy="38" r="4"/>'],
+  // ひと続きの帯 / 途中で切り替わる帯
+  ['<rect x="6" y="19" width="36" height="10" rx="5"/>',
+   '<rect x="6" y="19" width="17" height="10" rx="5"/><rect x="25" y="19" width="17" height="10" rx="5" opacity=".45"/>'],
+  // ひとつ / みっつ
+  ['<circle cx="24" cy="24" r="9"/>',
+   '<circle cx="14" cy="27" r="8"/><circle cx="34" cy="27" r="8"/><circle cx="24" cy="15" r="8"/>'],
+];
+const qmix=(a,b,t)=>'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';
+const qrgba=(c,a)=>'rgba('+c.join(',')+','+a+')';
 const NLV=9;                                   // 9段階。中央が「どちらでもない」
 let qIdx=0, qDone=false, qSel=-1, qAns=[];
 
@@ -1718,19 +1769,28 @@ function qTicks(){
 function qRender(dir){
   const w=$('qWrap');
   const paint=()=>{
-    const q=Q[qIdx];
+    const q=Q[qIdx], sk=QSKIN[qIdx]||QSKIN[0], ic=QICON[qIdx]||QICON[0];
     $('qTitle').innerHTML = q.l+'<em>か</em>'+q.r+'<em>か</em>';
-    $('qL').textContent=q.l; $('qR').textContent=q.r;
+    const svg=(d,c)=>'<span class="ic"><svg viewBox="0 0 48 48" fill="'+c+'">'+d+'</svg></span>';
+    $('qL').innerHTML = svg(ic[0],qrgba(sk.lc,.92))+'<span>'+q.l+'</span>';
+    $('qR').innerHTML = svg(ic[1],qrgba(sk.rc,.92))+'<span>'+q.r+'</span>';
     qSel = qAns[qIdx]===undefined ? -1 : qAns[qIdx];
     $('qVal').textContent = qSel<0 ? '— / 0'+NLV : String(qSel+1).padStart(2,'0')+' / 0'+NLV;
     const box=$('qCircles'); box.textContent='';
     for(let i=0;i<NLV;i++){
+      const t=i/(NLV-1), c=qmix(sk.lc,sk.rc,t);
       const b=document.createElement('button');
+      b.style.setProperty('--qc',c);
+      // 選ぶ前からうっすら色を敷いておく。押してから色が出るのでは遅い
+      b.style.setProperty('--qbg','rgb('+sk.lc.map((v,k)=>Math.round(255-(255-(v+(sk.rc[k]-v)*t))*0.13)).join(',')+')');
+      b.style.setProperty('--qh','rgba('+c.slice(4,-1)+',.18)');
       if(i===qSel) b.classList.add('on');
       b.onclick=()=>{
         qSel=i; qAns[qIdx]=i;
         [...box.children].forEach((el,j)=>el.classList.toggle('on',j===i));
+        b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit');   // 押すたび輪を出し直す
         $('qVal').textContent=String(i+1).padStart(2,'0')+' / 0'+NLV;
+        qBurstAt(b, c);                                    // 押した場所から粒を散らす
         setTimeout(qNext,420);
       };
       box.appendChild(b);
@@ -1797,6 +1857,31 @@ function orbDust(){
   X.globalAlpha=1;
 }
 /* 選択中の円のまわりに粒子を散らす（canvasにDOMの位置を合わせて描く） */
+/* 押した瞬間に、その丸から粒が散る。
+   触った手応えが何もないと、9個並んだ丸はただの回答欄にしか見えない。 */
+let qFx=[];
+function qBurstAt(el, col){
+  const r=el.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<34;i++){
+    const a=Math.random()*6.283, sp=40+Math.random()*190;
+    qFx.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-40,
+      life:0,max:0.55+Math.random()*0.4,z:1.4+Math.random()*2.6,
+      c: Math.random()<0.72 ? col : NOISE[i%5]});
+  }
+  if(qFx.length>400) qFx=qFx.slice(-400);
+}
+function drawQFx(dt){
+  if(!qFx.length) return;
+  for(const p of qFx){
+    p.life+=dt; p.vy+=520*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.94;
+    const k=1-p.life/p.max; if(k<=0) continue;
+    X.globalAlpha=Math.max(0,k)*0.9; X.fillStyle=p.c;
+    X.fillRect(p.x-p.z/2, p.y-p.z/2, p.z, p.z);
+  }
+  X.globalAlpha=1;
+  qFx=qFx.filter(p=>p.life<p.max);
+}
 function qBurst(){
   if(MODE!=='GEN'||qDone||rvOn||qSel<0) return;
   const box=$('qCircles'); if(!box||!box.children[qSel]) return;
