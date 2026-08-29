@@ -1238,6 +1238,11 @@ function requestAI(now){
     if(!packPicker){ aiErr='おかしの束が読めていない'; refreshGen(); return; }
     aiBusy=true; aiImg=null; aiErr='';
     packItem = packPicker.pick(qAns.map(v=>v===undefined?4:v));
+    /* 数値バーは、選ばれたお菓子そのものの5軸から引き直す。
+       回答から出すと、中央寄りの回答のとき「甘さの濃い」の文章に
+       しょっぱい優位のバーが並ぶことがある（2万回の実測で6%）。
+       文章と数値の出どころを同じお菓子に揃えて、この食い違いを消す */
+    { const _q=qAns; qAns=packItem.a.slice(); deriveRest(); qAns=_q; }
     // 文字欄は透明のまま先に埋めておく。
     // 空のまま生成演出に入ると、文字欄が低く測られて絵が大きくなり、
     // 結果が出た瞬間に絵と名前が重なる
