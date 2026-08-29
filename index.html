@@ -217,12 +217,14 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 /* 起動ボタン。塗った玉ではなく、他の画面と同じ「細い線と余白」で作る */
 .orb{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);
   width:296px;height:296px;border-radius:50%;
-  border:1px solid rgba(13,30,60,.20);background:transparent;
+  /* 真っ白な画面に白い丸だと押せる場所に見えない。
+     ベタ塗りにはせず、作品の基調色をごく薄く敷いて「ここだけ温度が違う」ことを示す */
+  border:1px solid rgba(0,162,199,.36);background:rgba(0,194,232,.065);
   display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
   cursor:pointer;pointer-events:auto;font:inherit;color:var(--ink);opacity:0;padding:0;
   transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
 .orb::before{content:'';position:absolute;left:15px;top:15px;right:15px;bottom:15px;
-  border-radius:50%;border:1px dashed rgba(13,30,60,.13)}
+  border-radius:50%;border:1px dashed rgba(0,162,199,.22)}
 .orb.on{display:flex}
 .orb.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .orb.go{opacity:0;transform:translate(-50%,-50%) scale(1.5)}
@@ -249,14 +251,10 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   transform:translateY(14px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
 .genui.ready .gres{opacity:1;transform:none;pointer-events:auto}
 .gres .gname{font-size:26px;letter-spacing:.18em;font-weight:800;margin-bottom:10px}
-/* 発明の一句。紹介文より大きく、ラベルを付けて独立させる */
-.gres .gnew{display:flex;align-items:baseline;justify-content:center;gap:12px;flex-wrap:wrap;
-  max-width:min(1040px,88vw);margin:0 auto 16px}
+/* 発明の一句＝キャッチコピー。名前の直下、紹介文より一段大きく太く */
+.gres .gnew{max-width:min(1040px,88vw);margin:0 auto 14px}
 .gres .gnew[hidden]{display:none}
-.gres .gnew span{font:700 9.5px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.24em;
-  color:var(--cy);border:1px solid rgba(0,194,232,.42);border-radius:2px;
-  padding:5px 7px 4px;text-indent:.24em;white-space:nowrap;flex:none}
-.gres .gnew b{font-size:15.5px;font-weight:700;letter-spacing:.08em;line-height:1.75;color:var(--ink)}
+.gres .gnew b{font-size:16.5px;font-weight:700;letter-spacing:.1em;line-height:1.8;color:var(--ink)}
 .gres .gcopy{font-size:13px;letter-spacing:.06em;line-height:1.95;color:#3c434f;
   max-width:min(1040px,88vw);margin:0 auto 22px}
 /* 作られたお菓子の9軸。結果は横長の画面で見るので3列に畳む */
@@ -284,22 +282,26 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   .qhead{left:20px;top:24px}.qback{left:20px;bottom:28px}
   .qbrand{display:none}   /* 右上のHUDと重なる。作品名はそちらに出ている */
   /* 端で切れるより、少し縮めて全部見せる */
-  .qtitle{font-size:min(6.4vw,25px);margin-bottom:56px;letter-spacing:0;white-space:nowrap}
+  /* 6.4vwだと最長の「ひと口で終わるか手が止まらないか」が390px幅で右端から溢れる */
+  .qtitle{font-size:min(5.5vw,25px);margin-bottom:56px;letter-spacing:0;white-space:nowrap}
   .qtitle em{font-size:.58em;margin:0 .30em 0 .18em}
   /* 9個の円は clamp の下限38pxのままだと 422px になり画面幅を超える */
   .qcircles{gap:5px}
   .qcircles button{width:30px;height:30px}
   .qcircles button.on::after{width:9px;height:9px;margin:-4.5px 0 0 -4.5px}
-  .qaxis{width:94vw;font-size:15px;margin-top:22px}
+  .qaxis{width:94vw;font-size:15px;margin-top:28px}
+  /* 縦画面は下が余る。設問一式を少し下げて、上下の重心を合わせる */
+  .qwrap{top:33vh}
   .qtrack{width:min(330px,84vw)}
   .orb{width:250px;height:250px}
   .orb span{font-size:13px;letter-spacing:.12em;text-indent:.12em}
   .ov .in{width:min(860px,88vw)}
   .gres .gname{font-size:20px}
-  .gres .gnew{max-width:88vw;gap:8px;margin-bottom:12px}
-  .gres .gnew span{font-size:8.5px;letter-spacing:.16em;padding:4px 6px 3px}
-  .gres .gnew b{font-size:13px;line-height:1.7}
+  .gres .gnew{max-width:88vw;margin-bottom:10px}
+  .gres .gnew b{font-size:14px;line-height:1.7}
   .gres .gcopy{font-size:11.5px;max-width:88vw}
+  /* 縦画面は下に余白が余る。結果一式を下へ寄せ、絵の場所を広く取る */
+  .gres{bottom:56px}
 }
 
 /* ---------- 旧スライダー（未使用） ---------- */
@@ -371,8 +373,9 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
 
   <div class="gres" id="gRes">
     <div class="gname" id="gName"></div>
-    <!-- 発明の一句だけを別行に立てる。紹介文に混ぜると、どこが新しいのか読み飛ばされる -->
-    <div class="gnew" id="gNew" hidden><span>ここが新しい</span><b></b></div>
+    <!-- 発明の一句を、名前の直下のキャッチコピーとして立てる。
+         「ここが新しい」等のラベルは付けない。説明の札が付いた瞬間、コピーではなく注記になる -->
+    <div class="gnew" id="gNew" hidden><b></b></div>
     <div class="gcopy" id="gCopy"></div>
     <!-- 棚のお菓子を押したときと同じ9軸を、作られたお菓子にも出す -->
     <div class="gbars" id="gBars"></div>
@@ -1068,10 +1071,13 @@ function drawGenerated(dt){
   if(limitY===null) limitY = H*0.58;                     // 測れなかったときの見積もり
   limitY = Math.min(limitY, H*0.86);
   limitY = Math.max(limitY, 80);                         // ここまで来ると絵は小さいが、消しはしない
-  const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=limitY*0.88;   // 回転と揺れのぶん余らせる
+  /* 上端も抑える。0から中央に置くと、縦画面では絵が右上のHUD（作品名と時刻）に
+     食い込んで、上に詰まって見える。HUDの下から絵の場所が始まるようにする */
+  const topPad = Math.min(W<820 ? 124 : 48, limitY-40);
+  const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=(limitY-topPad)*0.88;   // 回転と揺れのぶん余らせる
   const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
   let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
-  const cx=W/2, cy=limitY*0.5;
+  const cx=W/2, cy=topPad+(limitY-topPad)*0.5;
   const rot=fsin(T*0.6)*10*Math.PI/180, bob=fsin(T*0.9)*h*0.02;
   // 白の下ですでに出来上がっている。白が引いた時には、もう浮かんでいる
   X.save(); X.translate(cx,cy+bob); X.rotate(rot);
@@ -1729,23 +1735,25 @@ const QSKIN = [
   {lc:[ 42,156,112], rc:[132, 84,201]},   // ずっと同じ味 ⇔ 途中で変わる
   {lc:[ 74, 91,115], rc:[245,132, 47]},   // ひとりで ⇔ みんなで
 ];
-/* 絵は具体物を描かない。粒・かたまり・数・帯だけで、味の違いを図にする */
+/* 絵は具体物を描かない。粒・かたまり・数・帯だけで、味の違いを図にする。
+   塗り潰しの塊はスタンプに見えて安っぽかったので、
+   この作品の他の画面と同じ「細い線＋小さな塗りのアクセント」で引き直した */
 const QICON = [
-  // 角砂糖のかたまり / 塩の細かい結晶
-  ['<rect x="8" y="20" width="24" height="24" rx="3.5"/><rect x="22" y="6" width="18" height="18" rx="3"/>',
-   '<path d="M10 22l6-6 6 6-6 6z"/><path d="M26 12l6-6 6 6-6 6z"/><path d="M30 32l6-6 6 6-6 6z"/><path d="M16 38l4.5-4.5L25 38l-4.5 4.5z"/>'],
-  // 割れた破片 / 垂れる雫
-  ['<path d="M8 30l8-16 5 9 6-11 7 13 6-6v11z"/>',
-   '<path d="M24 8c6 9 10 13 10 18a10 10 0 1 1-20 0c0-5 4-9 10-18z"/>'],
-  // 大きなひと粒 / 小さな粒がたくさん
-  ['<circle cx="24" cy="24" r="13"/>',
-   '<circle cx="13" cy="15" r="4"/><circle cx="26" cy="11" r="4"/><circle cx="36" cy="19" r="4"/><circle cx="16" cy="29" r="4"/><circle cx="28" cy="26" r="4"/><circle cx="34" cy="34" r="4"/><circle cx="21" cy="38" r="4"/>'],
-  // ひと続きの帯 / 途中で切り替わる帯
-  ['<rect x="6" y="19" width="36" height="10" rx="5"/>',
-   '<rect x="6" y="19" width="17" height="10" rx="5"/><rect x="25" y="19" width="17" height="10" rx="5" opacity=".45"/>'],
-  // ひとつ / みっつ
-  ['<circle cx="24" cy="24" r="9"/>',
-   '<circle cx="14" cy="27" r="8"/><circle cx="34" cy="27" r="8"/><circle cx="24" cy="15" r="8"/>'],
+  // かたまり（線の積み木＋塗りの芯） / 結晶（線のひし形＋塗りの粒）
+  ['<rect x="10" y="19" width="19" height="19" rx="4"/><rect x="25" y="9" width="14" height="14" rx="3.5"/><rect x="17" y="26" width="6" height="6" rx="1.5" fill="currentColor" stroke="none"/>',
+   '<path d="M14 10l6 6-6 6-6-6z"/><path d="M32 17l7 7-7 7-7-7z"/><path d="M19 33l4 4-4 4-4-4z" fill="currentColor" stroke="none"/>'],
+  // 破断線（ジグザク＋割れた欠片） / 雫（輪郭＋下の波）
+  ['<path d="M7 31l8-17 6 10 7-14 7 16 6-7"/><path d="M32 36l4-4 4 4-4 4z" fill="currentColor" stroke="none"/>',
+   '<path d="M24 7c5.5 8.5 9 12.5 9 17a9 9 0 1 1-18 0c0-4.5 3.5-8.5 9-17z"/><path d="M11 41c3-2.4 5.7-2.4 8.7 0s5.7 2.4 8.7 0 5.6-2.4 8.6 0" opacity=".5"/>'],
+  // 大きなひと粒（輪と芯） / 止まらない粒（斜めに増えていく軌跡）
+  ['<circle cx="24" cy="25" r="13"/><circle cx="24" cy="25" r="3" fill="currentColor" stroke="none"/>',
+   '<path d="M8 40C17 37 31 27 41 11" opacity=".4"/><circle cx="10" cy="37" r="4.4" fill="currentColor" stroke="none"/><circle cx="20" cy="30" r="3.7" fill="currentColor" stroke="none"/><circle cx="30" cy="22" r="3" fill="currentColor" stroke="none"/><circle cx="38" cy="14" r="2.4" fill="currentColor" stroke="none"/>'],
+  // まっすぐな一本 / 途中で段が変わる一本
+  ['<path d="M8 24h32"/><circle cx="8" cy="24" r="2.8" fill="currentColor" stroke="none"/><circle cx="40" cy="24" r="2.8" fill="currentColor" stroke="none"/>',
+   '<path d="M8 31h12c4 0 4-14 8-14h12"/><circle cx="8" cy="31" r="2.8" fill="currentColor" stroke="none"/><circle cx="40" cy="17" r="2.8" fill="currentColor" stroke="none"/>'],
+  // ひとり（芯と輪） / みんな（重なり合う三つの輪）
+  ['<circle cx="24" cy="24" r="6" fill="currentColor" stroke="none"/><circle cx="24" cy="24" r="13.5" opacity=".5"/>',
+   '<circle cx="17" cy="28" r="9"/><circle cx="31" cy="28" r="9"/><circle cx="24" cy="16.5" r="9"/>'],
 ];
 const qmix=(a,b,t)=>'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';
 const qrgba=(c,a)=>'rgba('+c.join(',')+','+a+')';
@@ -1801,7 +1809,8 @@ function qRender(dir){
   const paint=()=>{
     const q=Q[qIdx], sk=QSKIN[qIdx]||QSKIN[0], ic=QICON[qIdx]||QICON[0];
     $('qTitle').innerHTML = q.l+'<em>か</em>'+q.r+'<em>か</em>';
-    const svg=(d,c)=>'<span class="ic"><svg viewBox="0 0 48 48" fill="'+c+'">'+d+'</svg></span>';
+    const svg=(d,c)=>'<span class="ic"><svg viewBox="0 0 48 48" style="color:'+c+'" fill="none" '
+      +'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg></span>';
     $('qL').innerHTML = svg(ic[0],qrgba(sk.lc,.92))+'<span>'+q.l+'</span>';
     $('qR').innerHTML = svg(ic[1],qrgba(sk.rc,.92))+'<span>'+q.r+'</span>';
     qSel = qAns[qIdx]===undefined ? -1 : qAns[qIdx];
