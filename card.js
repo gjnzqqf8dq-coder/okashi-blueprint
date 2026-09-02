@@ -2,7 +2,9 @@
    おかしの設計図 / OKASHI BLUEPRINT ── 持ち帰り用カード
    ------------------------------------------------------------
    QRの先で出すのは「袋の写真」ではなく「標本図（specimen plate）」。
-   1080×1350（4:5）。Instagram/LINE に貼っても切られない比率。
+   1080×1920（9:16）。スマホの画面と同じ比率。
+   4:5 で作っていたが「iPadの比率に見える」と言われた。
+   写真として持ち帰るなら、その人の画面と同じ形のほうが自然に収まる。
 
    window.OKB_CARD.render(opts) -> Promise<HTMLCanvasElement>
 
@@ -14,7 +16,7 @@
   'use strict';
 
   /* ---------- 寸法 ---------- */
-  var W = 1080, H = 1350;
+  var W = 1080, H = 1920;
   var M = 76;                    // 版面の余白
   var CW = W - M * 2;            // 版面のよこ幅 = 928
 
@@ -269,12 +271,13 @@
       hairline(ctx, M, 130, W - M);
 
       /* ---------- 下から先に決める（footer / 味の設計値） ---------- */
-      var footRuleY = 1268;
-      var footBase = 1302;
+      /* 下から積む位置は H から引いて出す。比率を変えても崩れない */
+      var footRuleY = H - 82;
+      var footBase = H - 48;
       var axRowPitch = 46;
-      var axTop = 1074;                 // 3行 × 46 = 138 → 1212 まで
-      var capBase = 1058;               // 小見出しのベースライン
-      var rule2Y = 1030;                // 本文と味の設計値のあいだの罫
+      var axTop = H - 276;              // 3行 × 46 = 138
+      var capBase = H - 292;            // 小見出しのベースライン
+      var rule2Y = H - 320;             // 本文と味の設計値のあいだの罫
 
       /* ---------- 本文の高さを先に測る ---------- */
       var NAME_MAX = 62, LEAD_SIZE = 28, BODY_SIZE = 21;
@@ -323,12 +326,17 @@
       var slack = (rule2Y - 30) - textGap - textH - photoTop;
       var bandH;
       if (hasImg) {
-        bandH = Math.min(644, slack);
-        if (bandH < 340) bandH = 340;
+        /* 元画像はどれも正方形なので、帯を高くしても被写体は横幅で頭打ちになる。
+           上限を版面の幅ぶんまでにして、余ったぶんは帯ごと中央へ寄せる。
+           そうしないと写真の上に白い穴が空く */
+        bandH = Math.min(Math.round(CW * 1.08), slack);
+        if (bandH < 340) bandH = Math.min(340, slack);
       } else {
         /* 写真が来なかったとき。帯を潰し、文をおおよそ天地の中央に置く */
         bandH = Math.max(40, Math.min(300, slack * 0.42));
       }
+      /* 余りは上下に半分ずつ */
+      photoTop += Math.max(0, Math.round((slack - bandH) * 0.5));
       var photoBottom = photoTop + bandH;
 
       var box = drawPackage(ctx, img, M, photoTop, CW, photoBottom - photoTop);

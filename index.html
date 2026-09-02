@@ -201,7 +201,7 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 /* 9個の丸も端から端まで。等間隔の9列に置く＝目盛りそのものになる */
 .qcircles{display:grid;grid-template-columns:repeat(9,1fr);align-items:center;justify-items:center;
   width:min(920px,94vw);margin:0 auto;position:relative}
-.qcircles button{width:min(9.4vw,62px);height:min(9.4vw,62px);border-radius:50%;
+.qcircles button{width:min(8.1vw,58px);height:min(8.1vw,58px);border-radius:50%;
   border:1.5px solid var(--qc,#0d1117);background:var(--qbg,transparent);
   cursor:pointer;position:relative;padding:0;
   transition:transform .45s cubic-bezier(.34,1.56,.64,1),border-color .3s,background .3s,box-shadow .3s}
@@ -335,7 +335,13 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
    必ず <img> に焼き直してから見せる */
 .cdin img{display:block;width:min(430px,86vw);max-height:74vh;height:auto;object-fit:contain;
   margin:0 auto 16px;border:1px solid var(--line);background:#fff}
-.cdin p{font-size:12px;letter-spacing:.1em;color:var(--sub);margin-bottom:18px}
+.cdin p{font-size:11.5px;letter-spacing:.06em;line-height:1.8;color:var(--sub);margin-bottom:14px}
+/* 長押しで「写真に追加」が出ないブラウザがある（LINEの中では出なかった）。
+   押すだけで保存できる道を正面に置く */
+.cdsave{font:inherit;font-size:13px;font-weight:700;letter-spacing:.16em;color:#fff;
+  background:var(--cy);border:1px solid var(--cy);border-radius:2px;cursor:pointer;
+  padding:15px 34px;margin-bottom:12px}
+.cdsave:disabled{opacity:.45;cursor:default}
 .gmeta{position:absolute;left:44px;bottom:86px;font-size:10px;letter-spacing:.16em;color:#aab1bd;pointer-events:none}
 @media(max-width:820px){
   .qhead{left:16px;right:16px;top:24px}
@@ -344,7 +350,7 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
      大きい字14＋小さい「か」2つ＝約15.2字ぶん。5.7vw なら 94vw に収まる */
   .qtitle{font-size:min(5.7vw,25px);margin-bottom:52px;letter-spacing:0;white-space:nowrap}
   .qtitle em{font-size:.58em;margin:0 .28em 0 .16em}
-  .qcircles{width:94vw}
+  .qcircles{width:92vw}
   .qcircles button.on::after{width:11px;height:11px;margin:-5.5px 0 0 -5.5px}
   .qaxis{width:94vw;font-size:min(5.4vw,21px);margin-top:24px}
   /* 縦画面は下が余る。設問一式を少し下げて、上下の重心を合わせる */
@@ -358,9 +364,9 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   .gres .gnew b{font-size:14px;line-height:1.7}
   .gres .gcopy{font-size:11.5px;max-width:88vw;margin-bottom:14px;
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
-  /* 「1つ戻る」は画面の左下に固定で出る。結果の足もとをそこまで下げると
-     文字とボタンが重なる（実機で重なっていた）。ボタン1つぶん上に置く */
-  .gres{bottom:74px}
+  /* 縦画面の結果では固定のナビを出さないので、足もとまで使える。
+     空いたぶんはそのまま絵の大きさになる */
+  .gres{bottom:34px}
   /* 縦画面＝もうスマホの中にある。QRを出しても自分では読めないので出さない。
      代わりに「スマホに残す」を押すと、持ち帰る一枚がその場に出る */
   .gqr{display:none!important}
@@ -369,12 +375,12 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   /* 4つを2×2に置く。自然に折り返させると 3＋1 になって不揃いに見える */
   .gacts{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:min(340px,92vw)}
   .gres .gsave,.gres .bpgo,.gres .qagain,.gres .qhome{
-    font-size:12px;letter-spacing:.04em;padding:13px 8px;text-align:center}
+    font-size:11.5px;letter-spacing:.02em;padding:11px 6px;text-align:center}
 }
 /* アプリ内ブラウザ（LINE・Instagram等）は上下にバーが出て、使える高さが
    600px前後まで縮む。そのままだと文字が場所を取りすぎて絵が半分になる */
 @media(max-width:820px) and (max-height:680px){
-  .gres{bottom:66px}
+  .gres{bottom:26px}
   .gres .gname{font-size:18px;margin-bottom:4px}
   .gres .gnew b{font-size:13px;line-height:1.6}
   .gres .gnew{margin-bottom:8px}
@@ -592,9 +598,17 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
   letter-spacing:.34em;color:var(--cy)}
 @media(max-width:820px){
   /* bottom:88px のままだと translateY(102%) で隠しきれず、下に帯が残る */
-  .panel{width:100%;height:52%;top:auto;bottom:0;border-left:none;border-top:1px solid var(--line);
-    transform:translateY(101%)}
+  /* 9軸を1行ずつ並べると札が画面の半分を占め、お菓子が隠れる。
+     2列にすれば行数が半分になり、そのぶんお菓子の場所が空く */
+  .panel{width:100%;height:48%;top:auto;bottom:0;border-left:none;border-top:1px solid var(--line);
+    transform:translateY(101%);padding:22px 20px 30px}
   .panel.on{transform:none}
+  .panel h2{font-size:20px}
+  .panel .meta{margin-bottom:14px}
+  .panel .close{top:18px;right:18px}
+  #pRows{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .row{margin-bottom:10px}
+  .panel #pNote{font-size:10.5px;line-height:1.8;margin-top:16px}
   .gen{right:0;grid-template-columns:repeat(2,1fr)}
   .bar{gap:16px;padding:0 14px}.meter:nth-child(n+3){display:none}
   .hud.bl,.hud.br{display:none}
@@ -677,7 +691,8 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
   <div class="qrov" id="cdOv">
     <div class="qrin cdin">
       <img id="cdImg" alt="">
-      <p id="cdMsg">長押しして「写真に追加」</p>
+      <button class="cdsave" id="cdSave">写真に保存</button>
+      <p id="cdMsg"></p>
       <button class="qrclose" id="cdClose">とじる</button>
     </div>
   </div>
@@ -1089,7 +1104,15 @@ function syncNav(){
   let back=true, home=true;
   if(MODE==='FLOAT'){ back=false; home=false; }              // ここがホーム。戻る先が無い
   else if(MODE==='DETAIL'){ home=false; }                    // 背後にホームが見えている
-  else if(MODE==='GEN' && gStep==='RESULT' && !bpIsOpen()) home=false;  // 結果の中にホームのボタンを置く
+  else if(MODE==='GEN' && gStep==='RESULT' && !bpIsOpen() && !cardIsOpen()){
+    home=false;                       // 結果の中にホームのボタンを置いてある
+    /* 縦画面では「1つ戻る」も出さない。結果の中に「もう一度つくる」と
+       「ホームに戻る」が並んでいるうえ、画面が低いブラウザ（LINEの中など）だと
+       固定のボタンと重なる。実機で重なった */
+    if(W<=820) back=false;
+  }
+  /* 持ち帰る一枚とQRは「とじる」を持っている。出口を3つ出すと迷う */
+  if(cardIsOpen()||qrIsOpen()) home=false;
   const b=$('btnBack'), m=$('btnHome');
   const bv=back?'':'none', mv=home?'':'none';
   if(b && b.style.display!==bv) b.style.display=bv;
@@ -1196,9 +1219,17 @@ function updateHUD(){
 function openDetail(s){
   LOG('shelf',{i:s.i});
   MODE='DETAIL'; selected=s;
-  const panelW = innerWidth>820 ? 330 : 0;
-  s.tx=(W-panelW)/2; s.ty=(H-88)*0.46;
-  s.tw=Math.min((W-panelW)*0.42,(H-88)*0.52*s.ar);
+  /* 縦画面では下から札が出てくる。お菓子はその上に空いている場所の
+     まんなかに置き、そこに収まる大きさにする。
+     以前は画面のまんなか基準だったので、札に半分隠れていた（実機で隠れた） */
+  if(W<=820){
+    const free = H*0.52;                 // 札の高さ48%を引いた、上に空いている高さ
+    s.tx = W/2; s.ty = free*0.48;
+    s.tw = Math.min(W*0.84, free*0.84*s.ar);
+  }else{
+    s.tx=(W-330)/2; s.ty=(H-88)*0.46;
+    s.tw=Math.min((W-330)*0.46,(H-88)*0.56*s.ar);
+  }
   s.tdisp=2.9; s.terode=2.8; s.talpha=1;
   for(const o of snacks) if(o!==s){ o.talpha=.10; o.tdisp=1; o.terode=1; }
   const d=s.data;
@@ -1215,11 +1246,13 @@ function openDetail(s){
     requestAnimationFrame(()=>{el.querySelector('i').style.width=v+'%';});
   });
   $('pNote').textContent = '味の数値がそのままこの形の粒子構造を決めている。粒子は画像から実測した'+s.n+'点。';
+  $('cta').style.display='none';   // 札の縁と重なる
   $('panel').classList.add('on');
   $('btnBack').style.display='';
 }
 function closeDetail(){
   MODE='FLOAT'; selected=null;
+  $('cta').style.display='';
   for(const o of snacks){ o.talpha=1; o.tdisp=1; o.terode=1; o.tw=o.baseW; }
   $('panel').classList.remove('on');
   $('btnBack').style.display='none';
@@ -2315,7 +2348,7 @@ function qNext(){
 }
 function qReset(){
   packItem=null; aiImg=null; { const g=document.getElementById('gNew'); if(g) g.hidden=true; }
-  resLogged=''; qrUrlNow=''; cdFor=''; cdBusy=false;
+  resLogged=''; qrUrlNow=''; cdFor=''; cdBusy=false; cdBlob=null; cdFile=null; cdUrl='';
   { const b=document.getElementById('gQr'); if(b) b.hidden=true; }
   { const i=document.getElementById('cdImg'); if(i) i.removeAttribute('src'); }
   qIdx=0; qDone=false; qSel=-1; qAns=[];
@@ -2424,6 +2457,7 @@ function gResult(){
   $('bpGo').hidden = !packItem;   // 設計図の中身は609枚の束にしかない
   gBars();
   qrPaint();
+  if(packItem) cardPrepare(packItem);   // 押される前に作っておく
   if(packItem && resLogged!==packItem.id){ resLogged=packItem.id;
     LOG('res',{id:packItem.id, name:packItem.name, a:qAns.map(v=>v===undefined?4:v)}); }
   $('gMeta').textContent = location.search.includes('aidebug') ? ('SEED '+gSeed()+'　API '+aiCalls+'回') : '';
@@ -2759,7 +2793,48 @@ function qrIsOpen(){ return $('qrOv').classList.contains('on'); }
    canvas のままだと iOS の長押しに「写真に追加」が出ないので、
    必ず <img> へ焼き直してから見せる。
    ============================================================ */
-let cdBusy=false, cdFor='';
+let cdBusy=false, cdFor='', cdBlob=null, cdFile=null, cdUrl='';
+/* 共有シートは「押した直後」でないと開かない端末がある。
+   結果が出た時点で裏で作っておき、押されたら渡すだけにする。
+   会場のiPad（横幅820超）はQRを使うので作らない。無駄に重くしない */
+function cardPrepare(it){
+  if(!it || !window.OKB_CARD || innerWidth>820) return;
+  if(cdFor===it.id || cdBusy) return;
+  cdBusy=true; cdBlob=null; cdFile=null; cdUrl='';
+  OKB_CARD.render(cardOptsOf(it)).then(cv=>{
+    cdUrl = cv.toDataURL('image/jpeg', 0.92);
+    cv.toBlob(function(b){
+      cdBlob=b;
+      try{ cdFile=new File([b], 'okashi-'+it.id+'.jpg', {type:'image/jpeg'}); }catch(e){ cdFile=null; }
+      cdFor=it.id; cdBusy=false;
+      if(cardIsOpen()) cardShow();
+    }, 'image/jpeg', 0.92);
+  }).catch(e=>{ console.warn('card',e); cdBusy=false; });
+}
+function canShareCard(){
+  try{ return !!(cdFile && navigator.canShare && navigator.canShare({files:[cdFile]})); }catch(e){ return false; }
+}
+function cardShow(){
+  const im=$('cdImg'), msg=$('cdMsg'), btn=$('cdSave');
+  if(!cdUrl){ msg.textContent='つくっています…'; btn.disabled=true; btn.textContent='写真に保存'; return; }
+  im.src=cdUrl; btn.disabled=false;
+  msg.textContent = canShareCard()
+    ? '押すと共有メニューが開きます。「画像を保存」で写真に入ります。'
+    : '押すと画像が保存されます。';
+}
+function cardSave(){
+  if(!cdBlob) return;
+  if(canShareCard()){
+    // ファイルだけ渡す。題名を一緒に渡すと受け付けない端末がある
+    navigator.share({files:[cdFile]}).catch(()=>{});
+    return;
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(cdBlob);
+  a.download='okashi-'+(packItem?packItem.id:'card')+'.jpg';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 3000);
+}
 function cardOptsOf(it){
   const p = splitNew(it.text) || {nw:'', body:it.text};
   return {
@@ -2772,25 +2847,13 @@ function cardOptsOf(it){
 function cardOpen(){
   const it = packItem; if(!it) return;
   LOG('qr',{id:it.id});          // 持ち帰ろうとした、として同じ器で数える
-  const ov=$('cdOv'), im=$('cdImg'), msg=$('cdMsg');
-  ov.classList.add('on');
-  if(cdFor===it.id && im.src){ return; }        // 同じ一枚なら作り直さない
-  if(!window.OKB_CARD){                          // 部品が無い時は素直にページへ送る
-    ov.classList.remove('on');
+  if(!window.OKB_CARD){          // 部品が無い時は素直にページへ送る
     const u=shareUrlOf(it); if(u) location.href=u;
     return;
   }
-  if(cdBusy) return;
-  cdBusy=true; im.removeAttribute('src'); msg.textContent='つくっています…';
-  OKB_CARD.render(cardOptsOf(it)).then(cv=>{
-    im.src = cv.toDataURL('image/jpeg', 0.92);
-    msg.textContent = '長押しして「写真に追加」';
-    cdFor = it.id; cdBusy=false;
-  }).catch(e=>{
-    console.warn('card', e);
-    cdBusy=false; ov.classList.remove('on');
-    const u=shareUrlOf(it); if(u) location.href=u;
-  });
+  $('cdOv').classList.add('on');
+  cardPrepare(it);
+  cardShow();
 }
 function cardClose(){ $('cdOv').classList.remove('on'); }
 function cardIsOpen(){ return $('cdOv').classList.contains('on'); }
@@ -2964,6 +3027,7 @@ $('qrClose').onclick=()=>qrClose();
 $('qrOv').onclick=e=>{ if(e.target===$('qrOv')) qrClose(); };   // 外を触っても閉じる
 $('gSave').onclick=()=>cardOpen();
 $('cdClose').onclick=()=>cardClose();
+$('cdSave').onclick=()=>cardSave();
 $('cdOv').onclick=e=>{ if(e.target===$('cdOv')) cardClose(); };
 /* 結果のホームボタン。押した＝最後まで見届けた、として記録する */
 $('qHome').onclick=()=>{ LOG('end',{id:packItem?packItem.id:''}); cardClose(); qrClose(); bpClose(); toFloat(); };

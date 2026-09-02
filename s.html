@@ -11,7 +11,13 @@
   main{min-height:100vh;display:flex;flex-direction:column;align-items:center;
     justify-content:center;padding:28px 0 40px;box-sizing:border-box}
   #card{display:block;width:min(560px,92vw);height:auto}
-  #tip{margin:18px 0 0;font-size:12.5px;letter-spacing:.08em;color:#7b8595}
+  #tip{margin:14px 0 0;font-size:12px;line-height:1.8;letter-spacing:.06em;color:#7b8595;
+    max-width:min(560px,92vw);text-align:center}
+  /* 長押しで「写真に追加」が出ないブラウザがある（LINEの中では出なかった）。
+     押すだけで保存できる道を正面に置く */
+  #save{margin:20px 0 0;font:inherit;font-size:13px;font-weight:700;letter-spacing:.16em;
+    color:#fff;background:#00a2c7;border:1px solid #00a2c7;border-radius:2px;
+    cursor:pointer;padding:15px 34px}
   #msg{font-size:13px;letter-spacing:.14em;color:#7b8595;
     font-family:"SF Mono",ui-monospace,Menlo,monospace}
 </style>
@@ -102,11 +108,38 @@
       im.id = 'card';
       im.alt = (it.name||'') + '｜おかしの設計図';
       im.src = url;
+      var btn = document.createElement('button');
+      btn.id = 'save';
+      btn.textContent = '写真に保存';
       var tip = document.createElement('p');
       tip.id = 'tip';
-      tip.textContent = '長押しして「写真に追加」';
       app.appendChild(im);
+      app.appendChild(btn);
       app.appendChild(tip);
+
+      /* 共有シートは押した直後でないと開かない端末がある。先に用意しておく */
+      var blob = null, file = null;
+      function canShare(){
+        try{ return !!(file && navigator.canShare && navigator.canShare({files:[file]})); }
+        catch(e){ return false; }
+      }
+      cv.toBlob(function(b){
+        blob = b;
+        try{ file = new File([b], 'okashi-' + it.id + '.jpg', {type:'image/jpeg'}); }catch(e){ file = null; }
+        tip.textContent = canShare()
+          ? '押すと共有メニューが開きます。「画像を保存」で写真に入ります。'
+          : '押すと画像が保存されます。';
+      }, 'image/jpeg', 0.92);
+
+      btn.onclick = function(){
+        if(!blob) return;
+        if(canShare()){ navigator.share({files:[file]})['catch'](function(){}); return; }
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'okashi-' + it.id + '.jpg';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 3000);
+      };
       document.title = (it.name||'') + '／おかしの設計図';
     })['catch'](function(){ fail(); });
   };
