@@ -486,6 +486,27 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   .bp .bpmat .r span,.bp .bpkeep,.bp .bptip li{font-size:12.5px}
   .bp .bpsub{margin-top:30px}
 }
+/* 横に広くて背が低いとき（テレビの比率に合わせた帯 1024×576 や、
+   小さめのノートPCの窓）。文字が場所を取りすぎて絵が半分になるので詰める。
+   9本の数値は設計図の中に全部あるので、ここでは出さない。
+   帯は「窓」ではないのでメディアクエリからは見えない。
+   作品側が自分の描画面の大きさを見て html に付ける（resize内） */
+html.shortres .gres{bottom:18px}
+html.shortres .gres .gname{font-size:20px;letter-spacing:.14em;margin-bottom:4px}
+html.shortres .gres .gnew b{font-size:14px;line-height:1.6}
+html.shortres .gres .gnew{margin-bottom:7px}
+html.shortres .gres .gcopy{font-size:12px;line-height:1.75;margin-bottom:10px;max-width:min(760px,80vw);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+html.shortres .gbars{display:none}
+html.shortres .gfoot{gap:14px}
+html.shortres .gqr canvas{width:64px;height:64px}
+html.shortres .gqr span{font-size:8px}
+html.shortres .gres .gsave,html.shortres .gres .bpgo,
+html.shortres .gres .qagain,html.shortres .gres .qhome{font-size:11px;padding:10px 14px}
+/* 設問側も詰める。576pxの帯だと見出しの下の96pxがそのまま効いて下がはみ出す */
+html.shortres .qwrap{top:20%}
+html.shortres .qtitle{margin-bottom:52px}
+
 /* 結果画面から設計図へ渡すボタン。「もう一度」より先に置く＝次に進む方が主 */
 
 
@@ -501,6 +522,59 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   background:var(--ink);cursor:pointer}
 .hide{display:none!important}
 body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ） */
+/* ---------- テレビの比率に合わせる（?fit=169） ----------
+   ミラーリングの黒帯は、テレビ側の画面サイズを
+   「横に合わせて上下を切る（ズーム／フル）」にすれば消える。
+   ただしそのときテレビに映るのは、iPadの画面の"真ん中の帯"だけになる。
+   だから作品のほうを、はじめからその帯の中に収めてしまう。
+
+   帯の高さ ＝ 画面の幅 × 9/16。iPad Pro 13 の縦なら 1024×576。
+   iPadの上下（各395px）は白く余る。そこは捨てる、という判断。
+
+   仕掛け: body に transform を持たせると、中の position:fixed が
+   画面ではなくこの箱を基準に置かれる。これで全画面用に書いた
+   レイアウトを、一切書き換えずに帯へ押し込められる。 */
+html.fit,html.fit body{background:#fff}
+html.fit body{
+  position:fixed; left:calc((100vw - 100vw*var(--fitw,1))/2); top:50%;
+  width:calc(100vw*var(--fitw,1));
+  height:calc(100vw*var(--fitw,1)*9/16);
+  transform:translateY(-50%);
+  overflow:hidden}
+/* 100vh は画面全体を指してしまう。帯の高さに読み替える */
+html.fit #veil,html.fit .genui,html.fit .ov{height:100%}
+html.fit .qwrap{top:30%}
+html.fit .tvline{bottom:6.2%}
+html.fit .cdin img{max-height:66%}
+/* 合わせ込み用の枠（?fit=169&cal=1）。
+   テレビ側の画面サイズを、この枠がちょうど画面の端に来るまで動かす */
+.calf{display:none}
+html.cal .calf{display:block;position:fixed;inset:0;z-index:40;pointer-events:none;
+  border:1px solid rgba(0,162,199,.85)}
+html.cal .calf i{position:absolute;background:var(--cy)}
+html.cal .calf i:nth-child(1){left:0;top:0;width:64px;height:5px}
+html.cal .calf i:nth-child(2){left:0;top:0;width:5px;height:64px}
+html.cal .calf i:nth-child(3){right:0;top:0;width:64px;height:5px}
+html.cal .calf i:nth-child(4){right:0;top:0;width:5px;height:64px}
+html.cal .calf i:nth-child(5){left:0;bottom:0;width:64px;height:5px}
+html.cal .calf i:nth-child(6){left:0;bottom:0;width:5px;height:64px}
+html.cal .calf i:nth-child(7){right:0;bottom:0;width:64px;height:5px}
+html.cal .calf i:nth-child(8){right:0;bottom:0;width:5px;height:64px}
+html.cal .calf b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font:400 11px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.3em;color:var(--cy)}
+.calbox{display:none}
+/* ＋−は帯の外（白く余っているところ）に出す。作品の上に置くと、
+   合わせ込みのあいだ肝心の絵が見えない */
+html.cal body{overflow:visible}
+html.cal .calbox{display:flex;position:fixed;left:50%;bottom:-13%;transform:translateX(-50%);
+  z-index:41;align-items:center;gap:10px;background:rgba(255,255,255,.96);
+  border:1px solid var(--line);padding:10px 12px;pointer-events:auto}
+.calbox button{font:inherit;font-size:18px;font-weight:700;width:44px;height:40px;
+  border:1px solid var(--line);background:none;color:var(--cy);cursor:pointer;border-radius:2px}
+.calbox span{font:400 11px/1.6 "SF Mono",ui-monospace,monospace;letter-spacing:.1em;
+  color:var(--sub);white-space:nowrap}
+.calbox span b{display:block;color:var(--ink);font-size:13px}
+
 /* テレビ側（?tv=1）。操作するものを一切出さない。見せるのは絵だけ */
 html.tv .cta,html.tv .backlink,html.tv .homelink,html.tv .hud.br,
 html.tv .panel,html.tv .genui,html.tv .ov{display:none!important}
@@ -534,6 +608,8 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
 <div class="hud tl"><b>OKASHI BLUEPRINT</b><span class="mono" id="hIdx">INDEX 00–54 / ACTIVE 00</span></div>
 <div class="hud tr"><b>おかしの設計図</b><span class="mono" id="hTime">--:--:--</span></div>
 <div class="hud bl mono">SCALE 1:100</div>
+<div class="calf"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><b>16 : 9</b></div>
+<div class="calbox"><button id="calMinus">−</button><span>この枠がテレビの端にそろうまで<b id="calVal">100.0%</b></span><button id="calPlus">＋</button></div>
 <div class="tvline">この台に触れると、まだ世界にないお菓子が ひとつ 生まれます。<small>OKASHI BLUEPRINT — 609 PACKAGES</small></div>
 <div class="hud br mono" id="hFps">— FPS</div>
 
@@ -706,9 +782,26 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
 /* ---------- リサイズ ---------- */
 let lastW=0,lastH=0;
+/* DOMの位置は「画面の左上から」で返ってくるが、キャンバスに描くときは
+   「キャンバスの左上から」でないといけない。全画面のときは同じなので
+   ずっと同じものとして扱えていたが、帯モードではキャンバスが画面の
+   真ん中に置かれるぶん（iPadなら上に395px）ずれる。
+   文字の位置に合わせて絵を置いている箇所が全部狂うので、
+   原点を1か所で持って、DOMの座標はここを通してから使う。 */
+let CX0=0, CY0=0;
+function canvasOrigin(){ const r=C.getBoundingClientRect(); CX0=r.left; CY0=r.top; }
+const cvTop  = el => el.getBoundingClientRect().top  - CY0;
+const cvLeft = el => el.getBoundingClientRect().left - CX0;
+
 function resize(){
-  W=innerWidth; H=innerHeight; DPR=Math.min(devicePixelRatio||1,1.5);
+  /* 帯モードでは、画面ではなく帯の大きさが作品の画面になる */
+  if(FIT){ const r=document.body.getBoundingClientRect(); W=Math.round(r.width)||innerWidth; H=Math.round(r.height)||innerHeight; }
+  else { W=innerWidth; H=innerHeight; }
+  DPR=Math.min(devicePixelRatio||1,1.5);
   C.width=W*DPR; C.height=H*DPR; X.setTransform(DPR,0,0,DPR,0,0);
+  canvasOrigin();
+  // 描画面が横に広くて背が低いか。帯モードでも窓が低いときでも同じ扱いにする
+  document.documentElement.classList.toggle('shortres', W>820 && H<=700);
   layout();
   if(MODE==='CONCEPT' && (W!==lastW||H!==lastH)){        // 幅が実際に変わった時だけ組み直す
     snacks.forEach(s2=>{ s2.tw=Math.min(W*0.105,H*0.17); });
@@ -1032,6 +1125,27 @@ function idleCheck(){
 const TV = /[?&]tv=1/.test(location.search);
 if(TV) document.documentElement.classList.add('tv');
 
+/* テレビの比率に合わせるモード。
+   ?fit=169  … 作品を画面の真ん中の16:9の帯に収める
+   &fitw=…   … 帯の幅の倍率（テレビのオーバースキャン分の追い込み）
+   &cal=1    … 合わせ込み用の枠と＋−ボタンを出す */
+const FIT = /[?&]fit=169/.test(location.search);
+let fitW = (function(){
+  const m=/[?&]fitw=([0-9.]+)/.exec(location.search);
+  const v=m?parseFloat(m[1]):1;
+  return (isFinite(v) && v>=0.6 && v<=1.4) ? v : 1;
+})();
+function applyFit(){
+  document.documentElement.style.setProperty('--fitw', String(fitW));
+  const el=document.getElementById('calVal');
+  if(el) el.textContent = (fitW*100).toFixed(1)+'%';
+  if(typeof resize==='function') resize();
+}
+if(FIT){
+  document.documentElement.classList.add('fit');
+  if(/[?&]cal=1/.test(location.search)) document.documentElement.classList.add('cal');
+}
+
 /* 記録。analytics.js が読めていない時も本体は動かす（記録だけ黙って諦める） */
 function LOG(n,p){
   idleAt = performance.now();   // 記録が立つ＝誰かが触っている。無操作の時計を戻す
@@ -1214,7 +1328,7 @@ function kinRebase(reset){
 function kinReflow(reset){
   if(!KC.height) return;
   $('hSpace').style.height=(KC.height+74)+'px';
-  kinOy=$('hSpace').getBoundingClientRect().top+30;
+  kinOy=cvTop($('hSpace'))+30;
   kinOx=Math.round((W||innerWidth||1280)*0.5-KC.width*0.5);
   kinRebase(reset);
 }
@@ -1223,7 +1337,10 @@ function kinSample(text){
   const VW=W||innerWidth||1280;
   const lines=text.split('\n');
   const KFONT=w=>w+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';
-  let fs=Math.max(20, Math.min(VW*0.058, 58));
+  // 描画面が低いときは幅だけで決めると見出しが場所を食い尽くす。
+  // テレビの比率に合わせた帯（1024×576）では高さのほうが効く。
+  // （VH はこの関数の下のほうで別に宣言済みなので、ここでは名前を作らない）
+  let fs=Math.max(20, Math.min(VW*0.058, (H||innerHeight||720)*0.085, 58));
   // 画面幅からはみ出したら、はみ出したぶんだけ字を小さくする。
   // 中央寄せなので、はみ出しは必ず左右両方で切れる
   const measure=s=>{ KX.font='800 '+KFONT(s); return Math.max(...lines.map(l=>KX.measureText(l).width)); };
@@ -1417,7 +1534,7 @@ function drawGenerated(dt){
      絵と文字が重なるのは、展示では一番やってはいけない壊れ方。 */
   const gr=$('gRes');
   let limitY = null;
-  if(gr){ const r=gr.getBoundingClientRect(); if(r.height>8) limitY = r.top - 20; }
+  if(gr){ const r=gr.getBoundingClientRect(); if(r.height>8) limitY = r.top - CY0 - 20; }
   /* 以前は下限を H*0.30 で挟んでいたが、これは実測値そのものを押し下げることがあった。
      文字が多く画面が低いとき（長い紹介文 × iPhone SE 縦など）、下限のほうが
      文字欄の上端より下に来て、絵が名前に食い込む。下限は「実測できなかったとき」だけに使う。
@@ -1870,7 +1987,7 @@ function revealStart(){
   rvBuildField();                                 // 未構築か、寸法が変わった時だけ組み直す
   rvField.fill(0); rvBurstOn=false; rvStreamT=0;
   const b=$('qMake').getBoundingClientRect();
-  const bx=(b.left+b.width/2)/W||0.5, by=(b.top+b.height/2)/H||0.5, br=(b.width*0.5)/W||0.11;
+  const bx=(b.left-CX0+b.width/2)/W||0.5, by=(b.top-CY0+b.height/2)/H||0.5, br=(b.width*0.5)/W||0.11;
   const N=rvPA.length;
   for(let i=0;i<N;i++){                            // 初期位置と濃さを戻すだけ
     const an=Math.random()*6.283, rr=br*(0.8+Math.random()*0.55);
@@ -2211,7 +2328,7 @@ function qReset(){
 let orbFx=[];
 function orbBurst(id){
   const b=$(id); if(!b) return;
-  const r=b.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const r=b.getBoundingClientRect(), cx=r.left-CX0+r.width/2, cy=r.top-CY0+r.height/2;
   for(let i=0;i<380;i++){
     const a=Math.random()*6.283, v=rnd(160,760);
     orbFx.push({x:cx+fcos(a)*r.width*0.45, y:cy+fsin(a)*r.width*0.45,
@@ -2234,7 +2351,7 @@ function orbDust(){
   if(!id) return;
   const b=$(id); if(!b.classList.contains('on')) return;
   const r=b.getBoundingClientRect(); if(!r.width) return;
-  const cx=r.left+r.width/2, cy=r.top+r.height/2, R=r.width*0.5;
+  const cx=r.left-CX0+r.width/2, cy=r.top-CY0+r.height/2, R=r.width*0.5;
   for(let i=0;i<560;i++){                              // かなりの量を散りばめる
     const ph=(i*0.61803)%1, ph2=(i*0.7548)%1;
     const f=(T*4.2+ph*11)%1; if(f>0.62) continue;
@@ -2253,7 +2370,7 @@ function orbDust(){
 let qFx=[];
 function qBurstAt(el, col){
   const r=el.getBoundingClientRect();
-  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const cx=r.left-CX0+r.width/2, cy=r.top-CY0+r.height/2;
   for(let i=0;i<34;i++){
     const a=Math.random()*6.283, sp=40+Math.random()*190;
     qFx.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-40,
@@ -2277,7 +2394,7 @@ function qBurst(){
   if(MODE!=='GEN'||qDone||rvOn||qSel<0) return;
   const box=$('qCircles'); if(!box||!box.children[qSel]) return;
   const r=box.children[qSel].getBoundingClientRect();
-  const cx=r.left+r.width/2, cy=r.top+r.height/2, R=r.width;
+  const cx=r.left-CX0+r.width/2, cy=r.top-CY0+r.height/2, R=r.width;
   for(let i=0;i<120;i++){
     const ph=(i*0.61803)%1, a=ph*6.283+T*0.5;
     const f=(T*6+ph*11)%1; if(f>0.55) continue;
@@ -2852,6 +2969,12 @@ $('cdOv').onclick=e=>{ if(e.target===$('cdOv')) cardClose(); };
 $('qHome').onclick=()=>{ LOG('end',{id:packItem?packItem.id:''}); cardClose(); qrClose(); bpClose(); toFloat(); };
 $('bpClose').onclick=()=>bpClose();
 $('qBack').onclick=()=>$('btnBack').click();
+/* 合わせ込み。テレビを見ながらiPadで押して、枠が画面の端に来たら止める。
+   決まった値は ?fit=169&fitw=… として控える（画面に出ている数字がそれ） */
+if($('calPlus')){
+  $('calPlus').onclick =e=>{ e.stopPropagation(); fitW=Math.min(1.40, Math.round((fitW+0.005)*1000)/1000); applyFit(); };
+  $('calMinus').onclick=e=>{ e.stopPropagation(); fitW=Math.max(0.60, Math.round((fitW-0.005)*1000)/1000); applyFit(); };
+}
 /* ホームに戻る＝待機画面（お菓子が漂う画面）まで一気に戻す。
    結果画面から押されたときだけは「最後まで見届けた」として別に記録する */
 $('btnHome').onclick=e=>{
@@ -2993,6 +3116,7 @@ addEventListener('keydown',e=>{
 });
 window.__dbg=()=>({mode:MODE,step:gStep,rvOn,rvT:+rvT.toFixed(2),ct:+($('rvVid').currentTime||0).toFixed(2),
   rate:$('rvVid').playbackRate,wait:rvWaiting,rvRare,aiImg:!!aiImg,aiMs,aiErr});
+if(FIT) applyFit();
 boot();
 /* 起動と待機画面到達を1件ずつ。ダッシュボードの母数はここから始まる */
 LOG('boot',{w:innerWidth,h:innerHeight});
