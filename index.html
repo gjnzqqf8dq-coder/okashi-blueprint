@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,viewport-fit=cover,user-scalable=no">
 <title>おかしの設計図 / OKASHI BLUEPRINT</title>
 <style>
 :root{
@@ -10,10 +10,12 @@
   --accent:#0b57d0; --bg:#ffffff;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg);
+html,body{height:100%;overflow:hidden;background:var(--bg);touch-action:manipulation;
   font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
   color:var(--ink);-webkit-font-smoothing:antialiased;user-select:none;cursor:crosshair}
-canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:1}
+/* 全体に効かせると、あとから足したQRのcanvasまで画面いっぱいに固定されてしまう。
+   実際に左上へ飛んだ。背景の描画面は #c だけなので、ここだけを指す */
+#c{position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:1}
 #rvVid{position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1}
 /* 生成の最後に画面を覆う白。canvasではなくDOMに置くのは、上に載っている文字ごと隠すため */
 #veil{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;
@@ -78,9 +80,21 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:
   .cta button:active{transform:scale(.97);
     background:linear-gradient(160deg,rgba(255,255,255,.74) 0%,rgba(232,244,255,.52) 100%)}
 }
-.backlink{position:fixed;left:26px;bottom:44px;z-index:7;font:inherit;font-size:11px;letter-spacing:.22em;
-  color:var(--sub);background:none;border:none;cursor:pointer;padding:8px 4px}
-.backlink:hover{color:var(--ink)}
+/* ナビは常にいちばん上。コンセプト画面(.ov, z8)や設計図(.bp, z12)の下に潜ると、
+   「2枚目で戻れない」が起きる。実際に起きた。z-index はこの2つが最大 */
+.backlink,.homelink{position:fixed;bottom:40px;z-index:30;font:inherit;font-size:11px;
+  letter-spacing:.2em;color:var(--sub);background:rgba(255,255,255,.72);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  border:1px solid var(--line);border-radius:2px;cursor:pointer;padding:11px 16px}
+.backlink{left:26px}
+.homelink{right:26px}
+.backlink:hover,.homelink:hover{color:var(--ink);border-color:rgba(0,162,199,.5)}
+/* 設問画面にも同じ役目のボタンがあった。2つ出るので、こちらに寄せる */
+.qback{display:none!important}
+@media(max-width:820px){
+  .backlink,.homelink{bottom:22px;font-size:10.5px;letter-spacing:.14em;padding:10px 13px}
+  .backlink{left:14px} .homelink{right:14px}
+}
 
 
 
@@ -153,7 +167,9 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:
 /* ---------- 生成画面：1問1画面（計測器の佇まい） ---------- */
 .genui{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:6;display:none;pointer-events:none;--cy:#00c2e8}
 .genui.on{display:block}
-body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}   /* 生成画面では元のHUDを隠す */
+/* 生成画面では元のHUDを隠す。もどるは以前ここで隠して .qback に任せていたが、
+   ボタンが2つ出るのをやめて .backlink 1本にしたので、隠してはいけない */
+body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 .qhead{position:absolute;top:38px;left:44px}
 .qbrand{font-size:14px;font-weight:800;letter-spacing:.26em;color:var(--ink)}
 .qnum{font-size:12px;letter-spacing:.2em;color:var(--sub);margin-top:8px}
@@ -201,9 +217,14 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   width:min(780px,74vw);margin-left:auto;margin-right:auto;
   font-size:21px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
 .qaxis span,.qaxis b{font-weight:700;display:flex;flex-direction:column;align-items:center;gap:9px}
-/* 両端の味に絵をつける。文字だけだと読む作業になる */
-.qaxis .ic{display:block;width:clamp(46px,4.2vw,64px);height:clamp(46px,4.2vw,64px)}
-.qaxis .ic svg{width:100%;height:100%;overflow:visible}
+/* 両端の味に絵をつける。文字だけだと読む作業になる。
+   絵は板に載せる。枠と内枠の細い罫が、絵を「置いてあるもの」にする */
+.qaxis .ic{position:relative;display:flex;align-items:center;justify-content:center;
+  width:clamp(58px,5.4vw,80px);height:clamp(58px,5.4vw,80px);
+  color:var(--c);border:1px solid var(--cb);background:var(--cf);border-radius:2px}
+.qaxis .ic::after{content:'';position:absolute;left:5px;top:5px;right:5px;bottom:5px;
+  border:1px solid var(--cb);opacity:.34;border-radius:1px;pointer-events:none}
+.qaxis .ic svg{width:64%;height:64%;overflow:visible}
 .qrule{position:absolute;left:0;right:0;top:-16px;height:9px;
   background:repeating-linear-gradient(90deg,#c9ced6 0 1px,transparent 1px 32px);
   border-top:1px solid #dfe3e9}
@@ -255,11 +276,11 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 .gres .gnew{max-width:min(1040px,88vw);margin:0 auto 14px}
 .gres .gnew[hidden]{display:none}
 .gres .gnew b{font-size:16.5px;font-weight:700;letter-spacing:.1em;line-height:1.8;color:var(--ink)}
-.gres .gcopy{font-size:13px;letter-spacing:.06em;line-height:1.95;color:#3c434f;
-  max-width:min(1040px,88vw);margin:0 auto 22px}
+.gres .gcopy{font-size:13px;letter-spacing:.06em;line-height:1.9;color:#3c434f;
+  max-width:min(880px,84vw);margin:0 auto 18px}
 /* 作られたお菓子の9軸。結果は横長の画面で見るので3列に畳む */
-.gbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 26px;
-  max-width:min(1040px,88vw);margin:0 auto 22px;text-align:left}
+.gbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 26px;
+  max-width:min(880px,84vw);margin:0 auto 18px;text-align:left}
 .gbars .b{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:baseline}
 .gbars .b i{grid-column:1/-1;display:block;height:3px;background:var(--line);position:relative;
   border-radius:2px;overflow:hidden}
@@ -270,19 +291,43 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 .gbars .b b{font:700 10.5px/1 "SF Mono",ui-monospace,monospace;color:var(--ink);
   font-variant-numeric:tabular-nums}
 @media(max-width:820px){
-  .gbars{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 16px;max-width:88vw}
-  .gbars .b span{font-size:9px;letter-spacing:.08em}
+  /* 縦画面で9本のバーを出すと、絵が半分になる。
+     数値は「設計図を見る」の中に全部入っているので、ここでは出さない */
+  .gbars{display:none}
 }
-.gqr{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px}
-.qrbox{width:74px;height:74px;background:#0d1117}
-.gqr span{font-size:9.5px;letter-spacing:.24em;color:var(--sub)}
-.qagain{font:inherit;font-size:11px;letter-spacing:.24em;color:var(--cy);background:none;border:none;cursor:pointer;padding:8px}
+/* 結果の足もと。QRと3つのボタンを1行に収める。
+   縦に積むと、その分だけ絵が小さくなる。ここは絵のための余白 */
+.gfoot{display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap;padding:0 12px}
+.gqr{display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:none;border:none;cursor:pointer;padding:0;font:inherit}
+.gqr[hidden]{display:none}
+.gqr canvas{width:92px;height:92px;display:block;border:1px solid var(--line);background:#fff}
+.gqr span{font-size:9px;letter-spacing:.16em;color:var(--sub)}
+.gacts{display:flex;align-items:center;gap:8px}
+.qagain,.qhome{font:inherit;font-size:11px;letter-spacing:.2em;background:none;border:none;
+  cursor:pointer;padding:11px 14px}
+.qagain{color:var(--cy)}
+.qhome{color:var(--sub)}
+.qhome:hover{color:var(--ink)}
+/* 締めの一文。作品はここで終わる。大きくすると説教くさくなるので、小さく置く */
+.gend{margin-top:16px;font-size:11px;letter-spacing:.14em;color:#9aa2ae;line-height:1.9}
+/* QRの拡大。読み取れるかどうかは面積で決まる */
+.qrov{position:fixed;inset:0;z-index:14;display:none;background:rgba(255,255,255,.97);
+  align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.qrov.on{display:flex}
+.qrin{text-align:center}
+.qrin canvas{width:min(300px,64vw);height:min(300px,64vw);display:block;margin:0 auto 20px;
+  border:1px solid var(--line)}
+.qrin b{display:block;font-size:15px;font-weight:800;letter-spacing:.14em;margin-bottom:10px}
+.qrin p{font-size:11.5px;line-height:2;color:var(--sub);letter-spacing:.06em;margin-bottom:22px}
+.qrclose{font:inherit;font-size:11px;letter-spacing:.24em;color:var(--cy);
+  background:none;border:none;cursor:pointer;padding:10px 4px}
 .gmeta{position:absolute;left:44px;bottom:86px;font-size:10px;letter-spacing:.16em;color:#aab1bd;pointer-events:none}
 @media(max-width:820px){
   .qhead{left:20px;top:24px}.qback{left:20px;bottom:28px}
   .qbrand{display:none}   /* 右上のHUDと重なる。作品名はそちらに出ている */
   /* 端で切れるより、少し縮めて全部見せる */
-  /* 6.4vwだと最長の「ひと口で終わるか手が止まらないか」が390px幅で右端から溢れる */
+  /* 6.4vwだと最長の「ひとつで足りるかつい手がのびるか」が390px幅で右端から溢れる */
   .qtitle{font-size:min(5.5vw,25px);margin-bottom:56px;letter-spacing:0;white-space:nowrap}
   .qtitle em{font-size:.58em;margin:0 .30em 0 .18em}
   /* 9個の円は clamp の下限38pxのままだと 422px になり画面幅を超える */
@@ -299,9 +344,19 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   .gres .gname{font-size:20px}
   .gres .gnew{max-width:88vw;margin-bottom:10px}
   .gres .gnew b{font-size:14px;line-height:1.7}
-  .gres .gcopy{font-size:11.5px;max-width:88vw}
+  .gres .gcopy{font-size:11.5px;max-width:88vw;margin-bottom:14px;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
   /* 縦画面は下に余白が余る。結果一式を下へ寄せ、絵の場所を広く取る */
-  .gres{bottom:56px}
+  .gres{bottom:26px}
+  /* 375px幅に QR＋ボタン3つを1行で収める。1行に収まらないと、
+     はみ出したぶんだけ絵が押し上げられて小さくなる */
+  .gfoot{gap:9px}
+  .gacts{gap:0}
+  .qagain,.qhome{font-size:10px;letter-spacing:.04em;padding:10px 6px}
+  .gres .bpgo{font-size:10px;letter-spacing:.04em;padding:9px 9px}
+  .gqr canvas{width:58px;height:58px}
+  .gqr span{font-size:8px;letter-spacing:.04em}
+  .gend{margin-top:12px;font-size:10px;letter-spacing:.08em}
 }
 
 /* ---------- 設計図（結果のその先） ----------
@@ -312,7 +367,7 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
 /* 白フラッシュ(#veil)と同じ z-index:9 だと、生成直後に開いたとき
    図面がフラッシュの下に潜って真っ白に見える。設計図は常に一番上 */
 .bp{position:fixed;inset:0;z-index:12;display:none;background:#fff;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;pointer-events:auto}
+  overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;pointer-events:auto}
 .bp.on{display:block}
 .bp .bpin{max-width:min(880px,92vw);margin:0 auto;padding:64px 0 96px;
   opacity:0;transform:translateY(12px);
@@ -323,21 +378,62 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   line-height:1.4;margin-bottom:6px}
 .bp .bphd i{display:block;font-style:normal;font-size:13px;font-weight:700;letter-spacing:.08em;
   color:#3c434f;line-height:1.8}
-/* 断面図。紙面の枠と対角の当たりを描いて、図面らしさを出す */
-.bp .bpfig{position:relative;margin:30px 0 34px;padding:26px 0;border:1px solid var(--line);
-  background:linear-gradient(90deg,rgba(13,30,60,.035) 0 1px,transparent 1px 28px),
-             linear-gradient(rgba(13,30,60,.035) 0 1px,transparent 1px 28px)}
-.bp .bpfig svg{display:block;width:min(420px,86%);height:auto;margin:0 auto;color:#0f1620}
-.bp .bpfig em{position:absolute;right:10px;bottom:8px;font-style:normal;
-  font:400 9.5px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.2em;color:#aab1bd}
-.bp .bpgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 34px;margin-bottom:38px}
+/* 図形で描いた断面図は捨てた。作品名が「設計図」でも、見た人が欲しいのは
+   幾何学の絵ではなく「どう作るか」だった。ここは料理のレシピとして組む。 */
+/* 出来上がり量・時間・難易度の3枠。レシピの一行目にあるべきもの */
+.bp .bpmeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;
+  border:1px solid var(--line);margin:28px 0 6px}
+.bp .bpmeta>div{padding:14px 16px;border-left:1px solid var(--line)}
+.bp .bpmeta>div:first-child{border-left:none}
+.bp .bpmeta span{display:block;font:400 9px/1 "SF Mono",ui-monospace,monospace;
+  letter-spacing:.2em;color:var(--sub);margin-bottom:8px}
+.bp .bpmeta b{font-size:13.5px;font-weight:700;letter-spacing:.04em;line-height:1.5}
+/* 大きさの目安。工程に混ぜると土台側の成形指示と食い違うので、ここに独立させる */
+.bp .bpsize{margin-top:12px;font-size:12.5px;line-height:1.9;color:var(--sub);letter-spacing:.02em}
+/* 材料。分量は右端に揃え、あいだを点線でつなぐ＝レシピの読み方そのもの */
+.bp .bpmat{margin-bottom:8px}
+.bp .bpmat .r{display:flex;align-items:baseline;gap:8px;padding:9px 0;
+  border-bottom:1px solid rgba(13,30,60,.07)}
+.bp .bpmat .r span{font-size:13.5px;letter-spacing:.04em;white-space:nowrap}
+.bp .bpmat .r i{flex:1;height:1px;border-bottom:1px dotted rgba(13,30,60,.28);transform:translateY(-3px)}
+.bp .bpmat .r b{font:700 12.5px/1 "SF Mono",ui-monospace,monospace;color:var(--ink);
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.bp .bpmat .h{font:400 9.5px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.2em;
+  color:var(--cy);padding:18px 0 4px}
+/* 作り方。番号は大きく、本文は行間を広く。立って読む人がいる */
+.bp .bpstep{list-style:none;margin-bottom:8px}
+.bp .bpstep li{display:grid;grid-template-columns:44px 1fr;gap:14px;
+  padding:16px 0;border-bottom:1px solid rgba(13,30,60,.07)}
+.bp .bpstep li b{font:700 17px/1.2 "SF Mono",ui-monospace,monospace;color:var(--cy);
+  font-variant-numeric:tabular-nums}
+.bp .bpstep li p{font-size:13.5px;line-height:2;letter-spacing:.02em;color:#28303c}
+.bp .bptip{list-style:none;margin-bottom:8px}
+.bp .bptip li{position:relative;padding:9px 0 9px 20px;font-size:13px;line-height:1.95;color:#3c434f}
+.bp .bptip li::before{content:'';position:absolute;left:2px;top:19px;width:7px;height:1px;background:var(--cy)}
+.bp .bpcheck{border-left:2px solid var(--cy);padding:4px 0 4px 14px;margin-bottom:8px;
+  font-size:12.5px;line-height:1.95;color:#3c434f}
+.bp .bptools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.bp .bptools span{border:1px solid var(--line);padding:7px 12px;font-size:12px;letter-spacing:.04em}
+.bp .bpkeep{font-size:13px;line-height:2;color:#3c434f;margin-bottom:8px}
+/* 味の設計値。縦画面の結果からは外したので、必ずここに出す */
+.bp .bpbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 26px;margin-bottom:8px}
+.bp .bpbars .b{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:baseline}
+.bp .bpbars .b i{grid-column:1/-1;display:block;height:3px;background:var(--line);
+  position:relative;border-radius:2px;overflow:hidden}
+.bp .bpbars .b i::after{content:'';position:absolute;left:0;top:0;height:100%;width:var(--w,0%);
+  background:linear-gradient(90deg,rgba(0,194,232,.45),var(--cy));border-radius:2px;
+  transition:width 1.1s cubic-bezier(.16,1,.3,1)}
+.bp .bpbars .b span{font-size:9.5px;letter-spacing:.12em;color:var(--sub)}
+.bp .bpbars .b b{font:700 10.5px/1 "SF Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.bp .bpgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 34px;margin-bottom:8px}
 .bp .bpsec{border-top:1px solid var(--line);padding-top:9px}
 .bp .bpsec span{display:block;font:400 9.5px/1 "SF Mono",ui-monospace,monospace;
   letter-spacing:.22em;color:var(--sub);margin-bottom:7px}
 .bp .bpsec b{font-size:14px;font-weight:700;letter-spacing:.05em;line-height:1.7}
-.bp .bpsub{font-size:9.5px;letter-spacing:.26em;color:var(--cy);margin-bottom:14px}
+.bp .bpsub{font-size:9.5px;letter-spacing:.26em;color:var(--cy);margin:38px 0 14px;
+  padding-bottom:9px;border-bottom:1px solid var(--line)}
 /* 配合。棒はデータの重みを一目で出すためだけ。数値は右に揃える */
-.bp .bpmix{margin-bottom:38px}
+.bp .bpmix{margin-bottom:8px}
 .bp .bpmix .r{display:grid;grid-template-columns:9em 1fr 3.4em;gap:12px;align-items:center;
   padding:7px 0;border-bottom:1px solid rgba(13,30,60,.07)}
 .bp .bpmix .r span{font-size:12.5px;letter-spacing:.06em}
@@ -346,24 +442,33 @@ body.genmode .hud.tl,body.genmode .hud.bl,body.genmode .backlink{display:none}  
   border-radius:2px;background:linear-gradient(90deg,rgba(0,194,232,.45),var(--cy))}
 .bp .bpmix .r b{font:700 12px/1 "SF Mono",ui-monospace,monospace;text-align:right;color:var(--ink)}
 /* 棚のいちばん近いもの＝「売っていないから自分で近づける」の入口 */
-.bp .bpnear{border:1px solid var(--line);padding:20px 22px;margin-bottom:44px}
+.bp .bpnear{border:1px solid var(--line);padding:20px 22px;margin-bottom:40px}
 .bp .bpnear .nm{font-size:15px;font-weight:800;letter-spacing:.1em;margin-bottom:12px}
 .bp .bpnear .df{font-size:13px;line-height:2;color:#3c434f}
 .bp .bpnear .df u{text-decoration:none;color:var(--cy);font-weight:700}
 .bp .bpclose{font:inherit;font-size:11px;letter-spacing:.24em;color:var(--cy);
   background:none;border:none;cursor:pointer;padding:10px 4px}
 @media(max-width:820px){
-  .bp .bpin{padding:40px 0 72px}
+  .bp .bpin{padding:36px 0 96px}
   .bp .bpgrid{grid-template-columns:1fr;gap:14px}
   .bp .bpmix .r{grid-template-columns:7em 1fr 3.2em;gap:9px}
   .bp .bpmix .r span{font-size:11.5px}
+  .bp .bpmeta{grid-template-columns:1fr;margin-top:22px}
+  .bp .bpmeta>div{border-left:none;border-top:1px solid var(--line);padding:11px 14px}
+  .bp .bpmeta>div:first-child{border-top:none}
+  .bp .bpbars{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+  .bp .bpstep li{grid-template-columns:32px 1fr;gap:10px;padding:14px 0}
+  .bp .bpstep li b{font-size:15px}
+  .bp .bpstep li p{font-size:12.5px;line-height:1.95}
+  .bp .bpmat .r span,.bp .bpkeep,.bp .bptip li{font-size:12.5px}
+  .bp .bpsub{margin-top:30px}
 }
 /* 結果画面から設計図へ渡すボタン。「もう一度」より先に置く＝次に進む方が主 */
-.gres .bpgo{font:inherit;font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--cy);
+.gres .bpgo{font:inherit;font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--cy);
   background:rgba(0,194,232,.07);border:1px solid rgba(0,162,199,.4);border-radius:2px;
-  cursor:pointer;padding:11px 22px;margin-bottom:14px;display:inline-block}
+  cursor:pointer;padding:11px 20px;display:inline-block}
+.gres .bpgo[hidden]{display:none}
 .gres .bpgo:hover{background:rgba(0,194,232,.14)}
-.gres .qagain{display:block;margin:0 auto}
 
 /* ---------- 旧スライダー（未使用） ---------- */
 .gen{display:none!important;position:fixed;left:0;right:330px;bottom:88px;z-index:6;padding:16px 26px 18px;
@@ -398,7 +503,8 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
 <div class="hud br mono" id="hFps">— FPS</div>
 
 <div class="cta" id="cta"><button id="btnGen">まだないおかしを、つくる</button></div>
-<button class="backlink" id="btnBack" style="display:none">もどる</button>
+<button class="backlink" id="btnBack" style="display:none">← 1つ戻る</button>
+<button class="homelink" id="btnHome" style="display:none">ホームに戻る</button>
 
 <div class="panel" id="panel">
   <div class="close" id="pClose">×</div>
@@ -439,25 +545,72 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
     <div class="gnew" id="gNew" hidden><b></b></div>
     <div class="gcopy" id="gCopy"></div>
     <!-- 棚のお菓子を押したときと同じ9軸を、作られたお菓子にも出す -->
+    <!-- 数値は絵の邪魔をする。縦画面では出さず、設計図の中に置く -->
     <div class="gbars" id="gBars"></div>
-    <!-- 「面白いね」で終わらせないための出口。押した先に断面と配合がある -->
-    <button class="bpgo" id="bpGo" hidden>設計図を見る</button>
-    <button class="qagain" id="qAgain">もう一度つくる</button>
+    <div class="gfoot">
+      <!-- 出たお菓子を持ち帰る唯一の手段。読み取ると画像がそのまま開く -->
+      <button class="gqr" id="gQr" hidden><canvas id="qrC"></canvas><span>スマホに残す</span></button>
+      <div class="gacts">
+        <!-- 「面白いね」で終わらせないための出口。押した先にレシピがある -->
+        <button class="bpgo" id="bpGo" hidden>設計図を見る</button>
+        <button class="qagain" id="qAgain">もう一度つくる</button>
+        <button class="qhome" id="qHome">ホームに戻る</button>
+      </div>
+    </div>
+    <div class="gend" id="gEnd"></div>
   </div>
   <div class="gmeta mono" id="gMeta"></div>
 
   <!-- 設計図。結果画面の上に敷く一枚の図面 -->
+  <div class="qrov" id="qrOv">
+    <div class="qrin">
+      <canvas id="qrBig"></canvas>
+      <b id="qrName"></b>
+      <p>カメラを向けると、この絵が開きます。<br>長押しして「写真に追加」で保存できます。</p>
+      <button class="qrclose" id="qrClose">とじる</button>
+    </div>
+  </div>
+
   <div class="bp" id="bp"><div class="bpin">
-    <div class="bphd"><span class="bpk mono">BLUEPRINT</span><b id="bpName"></b><i id="bpLead"></i></div>
-    <div class="bpfig"><div id="bpFig"></div><em id="bpFigK"></em></div>
+    <div class="bphd"><span class="bpk mono">RECIPE / 設計図</span><b id="bpName"></b><i id="bpLead"></i></div>
+
+    <div class="bpmeta">
+      <div><span>出来上がり</span><b id="bpY">—</b></div>
+      <div><span>調理時間</span><b id="bpTm">—</b></div>
+      <div><span>むずかしさ</span><b id="bpLv">—</b></div>
+    </div>
+    <p class="bpsize" id="bpSize"></p>
+
+    <div class="bpsub mono">ZAIRYO / 材料</div>
+    <div class="bpmat" id="bpMat"></div>
+
+    <div class="bpsub mono">TSUKURIKATA / 作り方</div>
+    <ol class="bpstep" id="bpStep"></ol>
+
+    <div class="bpsub mono">KOTSU / コツとポイント</div>
+    <ul class="bptip" id="bpTip"></ul>
+
+    <div class="bpsub mono">DANMEN / 断面の見どころ</div>
     <div class="bpgrid">
-      <div class="bpsec"><span>DANMEN / 断面</span><b id="bpSt"></b></div>
+      <div class="bpsec"><span>KOZO / 構造</span><b id="bpSt"></b></div>
       <div class="bpsec"><span>SHOKKAN / 食感</span><b id="bpTx"></b></div>
       <div class="bpsec"><span>TSUBU / ひと粒</span><b id="bpGr"></b></div>
       <div class="bpsec"><span>HOSO / 包装</span><b id="bpPk"></b></div>
     </div>
+    <p class="bpcheck" id="bpCk"></p>
+
+    <div class="bpsub mono">AJI / 味の設計値</div>
+    <div class="bpbars" id="bpBars"></div>
+
     <div class="bpsub mono">HAIGO / 配合（設計値）</div>
     <div class="bpmix" id="bpMix"></div>
+
+    <div class="bpsub mono">DOGU / 道具</div>
+    <div class="bptools" id="bpTools"></div>
+
+    <div class="bpsub mono">HOZON / 保存</div>
+    <p class="bpkeep" id="bpKeep"></p>
+
     <div class="bpsub mono">TANA / 棚のいちばん近いもの</div>
     <div class="bpnear" id="bpNear"></div>
     <button class="bpclose" id="bpClose">とじる</button>
@@ -474,6 +627,8 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
   <div class="next mono">画面をタップして続ける →</div>
 </div></div>
 
+<script src="analytics.js"></script>
+<script src="qr.js"></script>
 <script src="reveal_src.js"></script>
 <script src="picker.js"></script>
 <script src="prompt.js"></script>
@@ -775,7 +930,61 @@ function tick(dt){
     drawQFx(dt);
   }
   updateHUD();
+  syncNav();
+  idleCheck();
 }
+/* ============================================================
+   ナビ / 記録 / 無操作復帰
+   ------------------------------------------------------------
+   ナビの出し入れを遷移のたびに書くと、経路が増えたときに必ずどこかで
+   書き忘れる（「2枚目で戻れない」はそれで起きた）。
+   状態から毎フレーム引き直し、変わった時だけDOMに書く。
+   ============================================================ */
+function navWhere(){
+  if(typeof bpIsOpen==='function' && bpIsOpen()) return 'recipe';
+  if(MODE==='DETAIL')  return 'shelf';
+  if(MODE==='CONCEPT') return 'concept'+page;
+  if(MODE==='GEN')     return gStep==='ASK' ? ('ask'+qIdx) : String(gStep).toLowerCase();
+  return 'home';
+}
+function syncNav(){
+  let back=true, home=true;
+  if(MODE==='FLOAT'){ back=false; home=false; }              // ここがホーム。戻る先が無い
+  else if(MODE==='DETAIL'){ home=false; }                    // 背後にホームが見えている
+  else if(MODE==='GEN' && gStep==='RESULT' && !bpIsOpen()) home=false;  // 結果の中にホームのボタンを置く
+  const b=$('btnBack'), m=$('btnHome');
+  const bv=back?'':'none', mv=home?'':'none';
+  if(b && b.style.display!==bv) b.style.display=bv;
+  if(m && m.style.display!==mv) m.style.display=mv;
+}
+
+/* 無操作が続いたらホームへ戻す。展示は次の人が来る。
+   途中の画面を出したまま放置されると、次の人が最初から始められない。 */
+const IDLE_MS = 120000;
+let idleAt = (typeof performance!=='undefined' ? performance.now() : 0);
+function idlePoke(){ idleAt = performance.now(); }
+['pointerdown','keydown','touchstart','wheel','click'].forEach(n=>addEventListener(n, idlePoke, {passive:true}));
+function idleCheck(){
+  if(MODE==='FLOAT'){ idleAt=performance.now(); return; }
+  if(performance.now()-idleAt < IDLE_MS) return;
+  LOG('idle',{step:navWhere()});
+  idleAt=performance.now();
+  toFloat();
+}
+
+/* 記録。analytics.js が読めていない時も本体は動かす（記録だけ黙って諦める） */
+function LOG(n,p){
+  idleAt = performance.now();   // 記録が立つ＝誰かが触っている。無操作の時計を戻す
+  try{ if(window.OKB) OKB.log(n,p); }catch(e){}
+}
+
+/* iOS Safari は user-scalable=no を無視する。
+   ダブルタップ拡大は CSS の touch-action:manipulation で消え、
+   ピンチはこの3つを潰して消す。展示中に画面が拡大されると誰も直せない。 */
+['gesturestart','gesturechange','gestureend'].forEach(n=>
+  document.addEventListener(n, e=>e.preventDefault(), {passive:false}));
+document.addEventListener('touchmove', e=>{ if(e.touches.length>1) e.preventDefault(); }, {passive:false});
+
 let seeking=false;
 function frame(ts){
   if(seeking){ tick(0); requestAnimationFrame(frame); return; }   // 停止中も再描画し続ける
@@ -810,6 +1019,7 @@ function updateHUD(){
    詳細パネル
    ============================================================ */
 function openDetail(s){
+  LOG('shelf',{i:s.i});
   MODE='DETAIL'; selected=s;
   const panelW = innerWidth>820 ? 330 : 0;
   s.tx=(W-panelW)/2; s.ty=(H-88)*0.46;
@@ -843,25 +1053,27 @@ function closeDetail(){
 /* ============================================================
    コンセプト（散らばる → 2画面）
    ============================================================ */
-/* 3枚の導入。
-   「貧しくても削らなかった」から始めていたが、入り口が暗いうえに
-   読んだ人が責められている気になる。同じ家計調査の数字のまま、
-   「削らなかった」ではなく「買えた」の話に置き換えている。
-   締めも変えた。ここで作られるものは定番になる水準ではない。
-   言い過ぎた約束は、出てきた一枚を安っぽくする。 */
+/* 3枚の導入。1枚で1つのことしか言わない。
+   01 定番はあった（実在の年号で、読む人の記憶を引き出す）
+   02 その定番はもう更新されていない（だから作る理由がある）
+   03 では次の半世紀に残るものを作れるか（＝この装置への問い）
+   家計調査の6%の話から始めていたが、統計から入ると入口が講義になる。
+   誰でも名前を知っているお菓子の年号のほうが、はるかに速く届く。 */
 const PAGES=[
  {k:'CONCEPT 01 / 03',
-  h:'いつの時代も、お菓子は\n暮らしの潤いだった。',
-  p:'家計に占めるお菓子の割合は、昭和40年から平成20年まで約6%のまま動かなかった。景気が良くても悪くても変わらない。お菓子は余ったお金で買うものではなく、暮らしにはじめから組み込まれている。'},
+  h:'どの時代にも、\n名前だけで通じるお菓子があった。',
+  p:'ポッキーは1966年、うまい棒は1979年、じゃがりこは1995年。名前を言われるだけで、形も、包みの色も、噛んだときの音まで浮かぶ。百円ちょっとのものが、何十年も同じ棚に居座っている。'},
  {k:'CONCEPT 02 / 03',
-  h:'百円で、まだ知らない味に\n会えるからだ。',
-  p:'日本では年に千を超える新しいお菓子が生まれ、そのほとんどが一年で消えていく。この入れ替わりの速さが、包みの密度と食感の精度を、世界のどこにもない水準まで押し上げた。'},
+  h:'けれど、その定番は\nもう何十年も更新されていない。',
+  p:'いま定番と呼ばれているお菓子は、そのほとんどが1960年代から90年代のあいだに生まれている。新しいお菓子は年に千を超えて出るのに、その大半は一年で棚から消えていく。'},
  {k:'CONCEPT 03 / 03',
-  h:'まだ食べたことのない\nお菓子を、作ってみる。',
-  p:'あまいか、しょっぱいか。ひとりで食べるか、みんなで食べるか。五回答えるだけで、味も、形も、包みも決まる。世の中にまだない一点が、ここに現れる。'}
+  h:'次の半世紀に残るお菓子を、\n作れるだろうか。',
+  p:'あまいか、しょっぱいか。五回答えるだけでいい。形は一度も訊かない。味さえ決まれば、大きさも、包みも、そこから決まる。'}
 ];
 let page=0;
 function startConcept(){
+  try{ if(window.OKB) OKB.newSession(); }catch(e){}
+  LOG('start');
   MODE='CONCEPT';
   if(!W||!H) resize();
   // 中央を空け、左右2列に振り分けて縦に流す
@@ -881,6 +1093,7 @@ function startConceptAt(p){
   page=p;
 }
 function showPage(){
+  LOG('page',{p:page});
   const p=PAGES[page];
   $('ovK').textContent=p.k; $('ovH').textContent=p.h;
   $('ov').classList.add('on');          // 先に表示しないと本文の実寸が測れない（幅0で折り返しが壊れる）
@@ -1153,8 +1366,10 @@ function drawGenerated(dt){
   limitY = Math.max(limitY, 80);                         // ここまで来ると絵は小さいが、消しはしない
   /* 上端も抑える。0から中央に置くと、縦画面では絵が右上のHUD（作品名と時刻）に
      食い込んで、上に詰まって見える。HUDの下から絵の場所が始まるようにする */
-  const topPad = Math.min(W<820 ? 124 : 48, limitY-40);
-  const maxW=Math.min(W*(W<820?0.72:0.42), 560), maxH=(limitY-topPad)*0.88;   // 回転と揺れのぶん余らせる
+  const topPad = Math.min(W<820 ? 56 : 40, limitY-40);
+  /* 絵と文字の比は3:2。文字を詰めた分をそのまま絵に回す。
+     0.72/0.42 では絵と文字が1:1に見えていた（本人確認） */
+  const maxW=Math.min(W*(W<820?0.95:0.62), 780), maxH=(limitY-topPad)*0.95;   // 回転と揺れのぶん余らせる
   const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
   let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
   const cx=W/2, cy=topPad+(limitY-topPad)*0.5;
@@ -1284,8 +1499,10 @@ let aiImg=null, aiBusy=false, aiTimer=null, aiT0=0, aiMs=0, aiErr='', aiCalls=0;
 let packItem=null;
 /* 612枚の束。読み終わるまで数百ms。待機画面の間に済むので待たせない */
 let packPicker=null;
+/* レシピの部品庫。設計図を開くまで使わないが、同じ1回の読み込みで受け取る */
+let RLIB=null;
 /* 版番号を付けて読む。付けないとブラウザが古い紹介文を握ったままになる */
-fetch('okashi612.json?v=fde229d59d').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); })
+fetch('okashi612.json?v=3aa38750bd').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); RLIB=j.rlib||null; })
   .catch(e=>{ console.error('okashi612.json',e); });
 const aiCache=new Map();
 function gHash(t){ let h=2166136261; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
@@ -1805,7 +2022,7 @@ function rvRender(dt, ct){
 const Q = [
   {l:'あまい',         r:'しょっぱい'},
   {l:'ザクザク',       r:'とろける'},
-  {l:'ひと口で終わる', r:'手が止まらない'},
+  {l:'ひとつで足りる', r:'つい手がのびる'},
   {l:'ずっと同じ味',   r:'途中で変わる'},
   {l:'ひとりで',       r:'みんなで'},
 ];
@@ -1816,29 +2033,38 @@ const Q = [
 const QSKIN = [
   {lc:[236, 96,150], rc:[ 40,104,196]},   // あまい ⇔ しょっぱい
   {lc:[196,106, 36], rc:[224,150,182]},   // ザクザク ⇔ とろける
-  {lc:[214, 68, 56], rc:[240,178, 12]},   // ひと口で終わる ⇔ 手が止まらない
+  {lc:[214, 68, 56], rc:[240,178, 12]},   // ひとつで足りる ⇔ つい手がのびる
   {lc:[ 42,156,112], rc:[132, 84,201]},   // ずっと同じ味 ⇔ 途中で変わる
   {lc:[ 74, 91,115], rc:[245,132, 47]},   // ひとりで ⇔ みんなで
 ];
-/* 絵は具体物を描かない。粒・かたまり・数・帯だけで、味の違いを図にする。
-   塗り潰しの塊はスタンプに見えて安っぽかったので、
-   この作品の他の画面と同じ「細い線＋小さな塗りのアクセント」で引き直した */
+/* 両端の絵。
+   細い線だけで描いていたが、白い画面の上でひょろりと浮いて、
+   何の絵なのかも伝わらなかった（本人の指摘：ダサい）。作り直した。
+
+   直したのは2つ。
+   1) 塗りを主、線を従にする。塊として見えるところまで濃さを上げる。
+   2) 絵を「板（プレート）」に載せる。図鑑の標本札と同じ考え方で、
+      枠と内枠の細い罫が絵を支える。ここは作品の他の画面と同じ言語。
+
+   対になる2枚は、形そのもので反対のことを言わせている。
+   例）ずっと同じ味＝途切れない一本の帯／途中で変わる＝半分で塗りが線に変わる帯。
+   絵を見た瞬間に対比が読めれば、文字は確認のためだけになる。 */
 const QICON = [
-  // かたまり（線の積み木＋塗りの芯） / 結晶（線のひし形＋塗りの粒）
-  ['<rect x="10" y="19" width="19" height="19" rx="4"/><rect x="25" y="9" width="14" height="14" rx="3.5"/><rect x="17" y="26" width="6" height="6" rx="1.5" fill="currentColor" stroke="none"/>',
-   '<path d="M14 10l6 6-6 6-6-6z"/><path d="M32 17l7 7-7 7-7-7z"/><path d="M19 33l4 4-4 4-4-4z" fill="currentColor" stroke="none"/>'],
-  // 破断線（ジグザク＋割れた欠片） / 雫（輪郭＋下の波）
-  ['<path d="M7 31l8-17 6 10 7-14 7 16 6-7"/><path d="M32 36l4-4 4 4-4 4z" fill="currentColor" stroke="none"/>',
-   '<path d="M24 7c5.5 8.5 9 12.5 9 17a9 9 0 1 1-18 0c0-4.5 3.5-8.5 9-17z"/><path d="M11 41c3-2.4 5.7-2.4 8.7 0s5.7 2.4 8.7 0 5.6-2.4 8.6 0" opacity=".5"/>'],
-  // 大きなひと粒（輪と芯） / 止まらない粒（斜めに増えていく軌跡）
-  ['<circle cx="24" cy="25" r="13"/><circle cx="24" cy="25" r="3" fill="currentColor" stroke="none"/>',
-   '<path d="M8 40C17 37 31 27 41 11" opacity=".4"/><circle cx="10" cy="37" r="4.4" fill="currentColor" stroke="none"/><circle cx="20" cy="30" r="3.7" fill="currentColor" stroke="none"/><circle cx="30" cy="22" r="3" fill="currentColor" stroke="none"/><circle cx="38" cy="14" r="2.4" fill="currentColor" stroke="none"/>'],
-  // まっすぐな一本 / 途中で段が変わる一本
-  ['<path d="M8 24h32"/><circle cx="8" cy="24" r="2.8" fill="currentColor" stroke="none"/><circle cx="40" cy="24" r="2.8" fill="currentColor" stroke="none"/>',
-   '<path d="M8 31h12c4 0 4-14 8-14h12"/><circle cx="8" cy="31" r="2.8" fill="currentColor" stroke="none"/><circle cx="40" cy="17" r="2.8" fill="currentColor" stroke="none"/>'],
-  // ひとり（芯と輪） / みんな（重なり合う三つの輪）
-  ['<circle cx="24" cy="24" r="6" fill="currentColor" stroke="none"/><circle cx="24" cy="24" r="13.5" opacity=".5"/>',
-   '<circle cx="17" cy="28" r="9"/><circle cx="31" cy="28" r="9"/><circle cx="24" cy="16.5" r="9"/>'],
+  // 角砂糖の塊（塗り＋線） / 岩塩の結晶（角の立った菱形）
+  ['<rect x="6" y="21" width="21" height="21" rx="3" fill="currentColor" stroke="none"/><rect x="24" y="6" width="18" height="18" rx="3"/>',
+   '<path d="M15 5l11 12-11 12L4 17z" fill="currentColor" stroke="none"/><path d="M34 18l10 11-10 11-10-11z"/><path d="M17 35l6 6-6 6-6-6z" fill="currentColor" stroke="none"/>'],
+  // 割れた稜線（塗りの山並み） / 落ちる雫と、その下の溜まり
+  ['<path d="M4 42V29l8-15 7 11 8-14 9 17 8-8v22z" fill="currentColor" stroke="none"/><path d="M4 12l8-6 7 5 8-6 9 7 8-4" stroke-width="2" opacity=".4"/>',
+   '<path d="M24 5c7 11 11 15 11 20a11 11 0 1 1-22 0c0-5 4-9 11-20z" fill="currentColor" stroke="none"/><ellipse cx="24" cy="42" rx="16" ry="3.4" stroke-width="2" opacity=".45"/>'],
+  // ひとつで満ちる大きな粒 / 小さくなりながら続いていく粒
+  ['<circle cx="24" cy="24" r="15" fill="currentColor" stroke="none"/><circle cx="24" cy="24" r="21" stroke-width="1.6" opacity=".3"/>',
+   '<path d="M6 41C15 37 30 26 43 7" stroke-width="1.6" opacity=".28"/><circle cx="7" cy="40" r="5.2" fill="currentColor" stroke="none"/><circle cx="18" cy="33" r="4.3" fill="currentColor" stroke="none"/><circle cx="28" cy="24" r="3.4" fill="currentColor" stroke="none"/><circle cx="36" cy="15" r="2.6" fill="currentColor" stroke="none"/><circle cx="43" cy="7" r="1.9" fill="currentColor" stroke="none"/>'],
+  // 途切れない一本の帯 / 半分で塗りが線に変わる帯
+  ['<rect x="4" y="18" width="40" height="12" rx="2" fill="currentColor" stroke="none"/>',
+   '<rect x="4" y="18" width="18" height="12" rx="2" fill="currentColor" stroke="none"/><rect x="27" y="18" width="17" height="12" rx="2" stroke-width="2.4"/><path d="M22.5 24h4" stroke-width="2.4"/>'],
+  // ひとつだけの塗り / 三つが重なる輪
+  ['<circle cx="24" cy="24" r="9.5" fill="currentColor" stroke="none"/>',
+   '<circle cx="15" cy="30" r="10.5" stroke-width="2.4"/><circle cx="33" cy="30" r="10.5" stroke-width="2.4"/><circle cx="24" cy="15" r="10.5" stroke-width="2.4"/>'],
 ];
 const qmix=(a,b,t)=>'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';
 const qrgba=(c,a)=>'rgba('+c.join(',')+','+a+')';
@@ -1847,6 +2073,17 @@ let qIdx=0, qDone=false, qSel=-1, qAns=[];
 
 /* 6回のタップから9軸すべてとパッケージ形態を決める。
    1問が両極なので、1タップで2つの値が同時に動く。 */
+/* 設問の見出しは1行で見せたい（折り返すと対の関係が崩れる）。
+   だが「ひとつで足りるかつい手がのびるか」は390px幅で左右にはみ出す。
+   固定のvw指定では短い設問が小さくなりすぎるので、実測して縮める。 */
+function qFitTitle(){
+  const el=$('qTitle'); if(!el) return;
+  el.style.fontSize='';
+  const max = Math.min(innerWidth*0.94, 900);
+  let fs = parseFloat(getComputedStyle(el).fontSize) || 24;
+  let guard = 0;
+  while(el.scrollWidth > max && fs > 11 && guard++ < 60){ fs -= 0.5; el.style.fontSize = fs + 'px'; }
+}
 function deriveRest(){
   const t = i => (qAns[i]===undefined?4:qAns[i])/(NLV-1);   // 0=左 … 1=右
   const R = v => Math.round(Math.max(0,Math.min(100,v)));
@@ -1858,7 +2095,7 @@ function deriveRest(){
   // 04 途中で変わる ＝ 味が動く。酸味と辛みはそこから出す
   G.sour  = R(t3*70 + 6);
   G.spicy = R(t3*t0*80);
-  // 03 手が止まらない ＝ 後を引く旨み
+  // 03 つい手がのびる ＝ 後を引く旨み
   G.umami = R(t2*80 + 6);
 
   // 02 ザクザク / とろける
@@ -1866,7 +2103,7 @@ function deriveRest(){
   const sum=hard+creamy+crisp;
   G.hard=R(hard/sum*100); G.creamy=R(creamy/sum*100); G.crisp=100-G.hard-G.creamy;
 
-  // 03 ひと口で終わる ＝ 大きい / 手が止まらない ＝ 小粒
+  // 03 ひとつで足りる ＝ 大きい / つい手がのびる ＝ 小粒
   G.grain = R(94 - t2*86);
   // 05 みんなで ＝ 賑やかな意匠。04 味が動くほど色数も増える
   G.deco  = R(8 + t4*58 + t3*26);
@@ -1894,10 +2131,13 @@ function qRender(dir){
   const paint=()=>{
     const q=Q[qIdx], sk=QSKIN[qIdx]||QSKIN[0], ic=QICON[qIdx]||QICON[0];
     $('qTitle').innerHTML = q.l+'<em>か</em>'+q.r+'<em>か</em>';
-    const svg=(d,c)=>'<span class="ic"><svg viewBox="0 0 48 48" style="color:'+c+'" fill="none" '
-      +'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg></span>';
-    $('qL').innerHTML = svg(ic[0],qrgba(sk.lc,.92))+'<span>'+q.l+'</span>';
-    $('qR').innerHTML = svg(ic[1],qrgba(sk.rc,.92))+'<span>'+q.r+'</span>';
+    /* 板の枠・地・絵の3色を、その味の色から作って渡す。
+       color-mix はこの端末では動くが、古いWebViewで黙って無色になる。数値で渡す */
+    const svg=(d,c)=>'<span class="ic" style="--c:'+qrgba(c,.95)+';--cb:'+qrgba(c,.4)+';--cf:'+qrgba(c,.07)+'">'
+      +'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" '
+      +'stroke-linecap="round" stroke-linejoin="round">'+d+'</svg></span>';
+    $('qL').innerHTML = svg(ic[0],sk.lc)+'<span>'+q.l+'</span>';
+    $('qR').innerHTML = svg(ic[1],sk.rc)+'<span>'+q.r+'</span>';
     qSel = qAns[qIdx]===undefined ? -1 : qAns[qIdx];
     $('qVal').textContent = qSel<0 ? '— / 0'+NLV : String(qSel+1).padStart(2,'0')+' / 0'+NLV;
     const box=$('qCircles'); box.textContent='';
@@ -1911,6 +2151,7 @@ function qRender(dir){
       if(i===qSel) b.classList.add('on');
       b.onclick=()=>{
         qSel=i; qAns[qIdx]=i;
+        LOG('ask',{q:qIdx,v:i});
         [...box.children].forEach((el,j)=>el.classList.toggle('on',j===i));
         b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit');   // 押すたび輪を出し直す
         $('qVal').textContent=String(i+1).padStart(2,'0')+' / 0'+NLV;
@@ -1919,6 +2160,7 @@ function qRender(dir){
       };
       box.appendChild(b);
     }
+    qFitTitle();
     qTicks();
   };
   if(dir===undefined){ paint(); w.className='qwrap show'; return; }
@@ -1934,6 +2176,7 @@ function qNext(){
 }
 function qReset(){
   packItem=null; aiImg=null; { const g=document.getElementById('gNew'); if(g) g.hidden=true; }
+  resLogged=''; qrUrlNow=''; { const b=document.getElementById('gQr'); if(b) b.hidden=true; }
   qIdx=0; qDone=false; qSel=-1; qAns=[];
   deriveRest();                          // 未回答でも中央値で成立させる
   $('qWrap').style.display=''; $('genui').classList.remove('ready');
@@ -2039,6 +2282,10 @@ function gResult(){
   setResultText((packItem && packItem.text) || aiText || describe());
   $('bpGo').hidden = !packItem;   // 設計図の中身は609枚の束にしかない
   gBars();
+  qrPaint();
+  $('gEnd').textContent = endText();
+  if(packItem && resLogged!==packItem.id){ resLogged=packItem.id;
+    LOG('res',{id:packItem.id, name:packItem.name, a:qAns.map(v=>v===undefined?4:v)}); }
   $('gMeta').textContent = location.search.includes('aidebug') ? ('SEED '+gSeed()+'　API '+aiCalls+'回') : '';
   el.classList.add('ready');
 }
@@ -2110,32 +2357,9 @@ const BP_SUGAR = ['砂糖','水あめ','麦芽糖','濃縮果汁'];
 const BP_FAT   = ['植物油脂','植物油','ココアバター','全粉乳'];
 const BP_BODY  = ['小麦粉','うるち米','米粉','でん粉','ばれいしょでん粉','とうもろこし','カカオマス','ゼラチン','小豆','寒天'];
 
-/* 断面図。151種の構造を19の型に畳んである（畳むのは絵のためだけで、文字は原文を出す） */
-const A = ' stroke="#00a2c7" stroke-width="1.6"';
-const BP_FIG = {
-  layers : '<rect x="52" y="40" width="136" height="62" rx="3"/><path d="M52 58h136M52 72h136M52 88h136"/><rect x="52" y="58" width="136" height="14"'+A+'/>',
-  rings  : '<circle cx="120" cy="71" r="47"/><circle cx="120" cy="71" r="34"/><circle cx="120" cy="71" r="21"/><circle cx="120" cy="71" r="9"'+A+'/>',
-  hollow : '<rect x="52" y="38" width="136" height="66" rx="8"/><ellipse cx="120" cy="71" rx="46" ry="21"/><ellipse cx="120" cy="71" rx="38" ry="15"'+A+'/>',
-  bubble : '<rect x="52" y="38" width="136" height="66" rx="4"/><circle cx="82" cy="60" r="9"/><circle cx="112" cy="80" r="13"'+A+'/><circle cx="146" cy="56" r="7"/><circle cx="166" cy="82" r="10"/><circle cx="96" cy="92" r="5"/><circle cx="136" cy="98" r="4"/>',
-  grains : '<rect x="52" y="40" width="136" height="62" rx="4"/><circle cx="72" cy="58" r="3.4"/><circle cx="92" cy="76" r="3.4"/><circle cx="112" cy="54" r="3.4"'+A+'/><circle cx="132" cy="82" r="3.4"/><circle cx="152" cy="60" r="3.4"/><circle cx="172" cy="80" r="3.4"/><circle cx="86" cy="94" r="3.4"/><circle cx="126" cy="94" r="3.4"/><circle cx="166" cy="94" r="3.4"/><circle cx="106" cy="94" r="3.4"/><circle cx="146" cy="94" r="3.4"/>',
-  film   : '<rect x="52" y="38" width="136" height="66" rx="20"/><rect x="60" y="46" width="120" height="50" rx="16"'+A+'/><path d="M78 62c14-8 28-8 42 0"/>',
-  fiber  : '<rect x="52" y="40" width="136" height="62" rx="4"/><path d="M56 54c18-7 36 7 54 0s36 7 54 0s16-4 22-2"/><path d="M56 71c18-7 36 7 54 0s36 7 54 0s16-4 22-2"'+A+'/><path d="M56 88c18-7 36 7 54 0s36 7 54 0s16-4 22-2"/>',
-  groove : '<path d="M52 52h136v50H52z"/><path d="M76 52v10M100 52v17M124 52v10M148 52v17M172 52v10"/><path d="M100 52v17M148 52v17"'+A+'/>',
-  crack  : '<rect x="52" y="42" width="136" height="58" rx="3"/><path d="M104 42l10 18-14 12 16 14-8 14"'+A+'/><path d="M148 42l-6 20 10 10-8 12 6 16"/>',
-  chain  : '<rect x="40" y="48" width="46" height="46" rx="8"/><rect x="97" y="48" width="46" height="46" rx="8"'+A+'/><rect x="154" y="48" width="46" height="46" rx="8"/><path d="M86 71h11M143 71h11"/>',
-  lattice: '<rect x="52" y="38" width="136" height="66" rx="3"/><path d="M86 38v66M120 38v66M154 38v66M52 60h136M52 82h136"/><rect x="86" y="60" width="34" height="22"'+A+'/>',
-  ooze   : '<path d="M56 38h128v40a12 12 0 0 1-12 12H68a12 12 0 0 1-12-12z"/><path d="M88 90c0 10 4 14 4 20s-8 8-8 0 4-10 4-20z"'+A+'/><path d="M126 90c0 8 3 11 3 16s-6 6-6 0 3-8 3-16z"'+A+'/><path d="M160 90c0 6 2 8 2 12"/>',
-  stage  : '<rect x="34" y="50" width="42" height="42" rx="4"/><rect x="99" y="50" width="42" height="42" rx="4" fill="rgba(13,30,60,.10)"/><rect x="164" y="50" width="42" height="42" rx="4" fill="rgba(0,162,199,.22)"'+A+'/><path d="M80 71h15M145 71h15"/>',
-  surface: '<path d="M52 58h136v44H52z"/><path d="M52 58l18-16h136l-18 16"/><path d="M188 58l18-16v44l-18 16"/><path d="M74 50h108M70 54h116"'+A+'/>',
-  axis   : '<ellipse cx="120" cy="71" rx="56" ry="26"/><path d="M120 22v98"'+A+'/><path d="M104 45h32M104 97h32"/>',
-  fruit  : '<circle cx="120" cy="71" r="46"/><circle cx="120" cy="71" r="31"/><path d="M120 52c9 6 9 32 0 38-9-6-9-32 0-38z"'+A+'/>',
-  crystal: '<path d="M120 26l40 22v46l-40 22-40-22V48z"/><path d="M120 48l20 11v23l-20 11-20-11V59z"'+A+'/><path d="M80 48l40 22 40-22M120 70v48"/>',
-  slab   : '<path d="M52 54h136v40H52z"/><path d="M52 54l16-14h136l-16 14M188 54l16-14v40l-16 14"/><path d="M52 74h136"'+A+' stroke-dasharray="6 5"/>',
-  misc   : '<rect x="52" y="40" width="136" height="62" rx="6"/><path d="M52 71h136"'+A+' stroke-dasharray="6 5"/><path d="M120 40v62" stroke-dasharray="4 5"/>',
-};
-const BP_FIGJA = {layers:'層',rings:'同心',hollow:'空洞',bubble:'気泡',grains:'粒',film:'膜',fiber:'繊維',
-  groove:'溝',crack:'破断',chain:'反復',lattice:'格子',ooze:'滲出',stage:'段階',surface:'表層',
-  axis:'軸',fruit:'核',crystal:'結晶',slab:'単層',misc:'—'};
+/* 断面図（19種の幾何図形）はここにあったが、削除した。
+   「設計図」を名乗る画面に幾何学の絵を置いても、見た人は何も持ち帰れない。
+   同じ場所に、実際に作れるレシピを置いた。 */
 
 /* 味の指定から配合を引く。合計100%に正規化して、上から7つ出す */
 function bpMixOf(item){
@@ -2169,20 +2393,143 @@ function bpNearOf(){
   return {name:nb.d.name, year:nb.d.y, diff:d};
 }
 
+/* レシピの組み立て。
+   609件ぶんのレシピ文を焼き込むと1MBを超え、会場のWi-Fiでは重い。
+   代わりに部品庫（okashi612.json の rlib）だけを配って、ここで掛け合わせる。
+     菓子の種類(14) × 内部構造(19) × 食感(10) × 粒(4) × 主役の味(5) × 包装(6)
+   種類・構造・食感・粒・包装は612案CSVに最初から入っていた設計条件そのもの。
+   新しく足したのは「その条件を実際に作るための工程」だけ。 */
+function buildRecipe(it){
+  const L = (typeof RLIB!=='undefined' && RLIB) || null;
+  if(!L || !it) return null;
+  const base = L.kinds[it.k];
+  if(!base) return null;
+  const st  = L.structs[L.structs[it.sk] ? it.sk : 'misc'];
+  const tex = L.texture[ L.texbykind[it.k] || L.texmap[it.x] || '' ] || null;
+  const gr  = L.grain[it.g] || null;
+  const dom = ['sweet','salt','spicy','sour','umami'].reduce((a,b)=>G[b]>G[a]?b:a);
+  const ta  = L.taste[dom] || null;
+  const fm  = L.form[G.form] || '';
+
+  // 材料。土台 → 構造 → 味 の順に足し、同じ名前は先に出たほうを残す
+  const seen={}, m=[];
+  const addMat=a=>{ (a||[]).forEach(x=>{ if(!seen[x[0]]){ seen[x[0]]=1; m.push([x[0],x[1]]); } }); };
+  addMat(base.m); addMat(st.m); if(ta) addMat(ta.m);
+
+  /* 工程の差し込み位置。
+     ここを「真ん中」でやると壊れる。実際に壊れた ──
+     構造の工程で焼いたあとに、土台の「油脂を粉に切り込む」が来た。
+     土台はどれも 混ぜる → 成形 → 焼く/揚げる/固める → 冷ます の順で並ぶので、
+     「最初に熱を入れる工程」の直前に差し込む。そこが成形の終わりにあたる。
+     大きさの指定（粒）は工程に入れない。土台側にも成形の指示があって食い違うので、
+     見出しの下に「大きさの目安」として別に出す。 */
+  const bs = base.st.slice();
+  const HEAT = /焼|揚げ|オーブン|蒸|固め|冷やし|凍/;
+  let heat = -1;
+  for(let i=2;i<bs.length;i++){ if(HEAT.test(bs[i])){ heat=i; break; } }
+  /* 熱を入れる工程の「ひとつ手前」に差し込む。
+     ちょうど手前は土台の最後の成形（のばす・型で抜く・丸める）にあたるので、
+     順番が 混ぜる → 構造をつくる → 形を整える → 熱を入れる になる。
+     熱を入れる工程の直前に置くと、構造の工程のあとに土台の成形が来ないため、
+     「混ぜてから形にする」の順が逆さまになる。実際に逆さまになっていた。 */
+  const cut = heat>=3 ? heat-1 : (heat>=0 ? heat : Math.max(2, bs.length-2));
+  const steps = bs.slice(0,cut);
+  (bs.length>=9 ? st.st.slice(0,2) : st.st.slice()).forEach(s=>steps.push(s));
+  bs.slice(cut).forEach(s=>steps.push(s));
+  if(fm) steps.push(fm);                                   // 包むのは最後
+
+  /* 食感の指示は工程に混ぜない。
+     「冷えた油脂を粉に切り込む」のような混ぜ方の話なので、土台の混ぜ方と
+     ぶつかることがある（クリーミング法のビスケットに切り込み法が割り込んだ）。
+     コツとして最後に置けば、土台の手順を壊さずに同じことが伝わる。 */
+  /* 食感と味の指示は工程に混ぜない。どちらも「混ぜ方」の話で、
+     土台の製法とぶつかることがある（クリーミング法のビスケットに切り込み法が、
+     パン生地のプレッツェルに「火を止めてから」が割り込んだ）。
+     コツとして置けば、土台の手順を壊さずに同じことが伝わる。 */
+  const tips = base.tp.slice();
+  tips.push(st.tip);
+  if(tex){ tips.push(tex.tip); if(tex.tweak) tips.push('この食感を狙うなら ── '+tex.tweak); }
+  if(ta){  if(ta.st) tips.push('味の主役を立てるなら ── '+ta.st); tips.push(ta.tip); }
+
+  // 手数の多い構造は、難度をひとつ上げる
+  let lv = base.lv;
+  if(L.hard.indexOf(it.sk)>=0){
+    const i=L.levels.indexOf(lv);
+    if(i>=0 && i<L.levels.length-1) lv=L.levels[i+1];
+  }
+  const tl = base.tl.concat(st.tl).filter((v,i,a)=>a.indexOf(v)===i);
+
+  return {
+    y: gr ? gr.note.replace(/^出来上がりの目安は/,'').replace(/。$/,'') : base.y,
+    size: gr ? gr.cut : '',
+    tm: base.tm, lv: lv, tl: tl,
+    m: m, sm: base.sm, st: steps, tp: tips,
+    kp: base.kp, ck: st.check, label: st.label
+  };
+}
+function bpRows(box, rows){
+  box.textContent='';
+  rows.forEach(r=>{
+    if(r.head){ const d=document.createElement('div'); d.className='h'; d.textContent=r.head; box.appendChild(d); return; }
+    const d=document.createElement('div'); d.className='r';
+    const s=document.createElement('span'); s.textContent=r[0];
+    const i=document.createElement('i');
+    const b=document.createElement('b'); b.textContent=r[1];
+    d.appendChild(s); d.appendChild(i); d.appendChild(b); box.appendChild(d);
+  });
+}
 function bpOpen(){
   if(!packItem) return;
-  const it = packItem, sk = BP_FIG[it.sk] ? it.sk : 'misc';
+  LOG('recipe',{id:packItem.id});
+  const it = packItem, R = buildRecipe(it);
   $('bpName').textContent = it.name;
   $('bpLead').textContent = (it.text.split('。')[0].split('、').slice(0,-1).join('、')) + '。';
-  $('bpFig').innerHTML =
-    '<svg viewBox="0 0 240 142" fill="none" stroke="currentColor" stroke-width="1.2" '
-    + 'stroke-linecap="round" stroke-linejoin="round">' + BP_FIG[sk] + '</svg>';
-  $('bpFigK').textContent = 'FIG. ' + it.id + ' — ' + (BP_FIGJA[sk]||'');
+
+  // 見出しの3枠
+  $('bpY').textContent  = R && R.y  ? R.y  : '—';
+  $('bpTm').textContent = R && R.tm ? R.tm : '—';
+  $('bpLv').textContent = R && R.lv ? R.lv : '—';
+  $('bpSize').textContent = (R && R.size) ? ('大きさの目安 ── ' + R.size) : '';
+  $('bpSize').style.display = (R && R.size) ? '' : 'none';
+
+  // 材料。仕上げ用は見出しを挟んで分ける
+  const mat = [];
+  if(R && R.m) R.m.forEach(x=>mat.push(x));
+  if(R && R.sm && R.sm.length){ mat.push({head:'仕上げ・打ち粉'}); R.sm.forEach(x=>mat.push(x)); }
+  bpRows($('bpMat'), mat.length?mat:[['—','—']]);
+
+  // 作り方
+  const st=$('bpStep'); st.textContent='';
+  ((R && R.st) || ['—']).forEach((s,i)=>{
+    const li=document.createElement('li');
+    const b=document.createElement('b'); b.textContent=String(i+1).padStart(2,'0');
+    const p=document.createElement('p'); p.textContent=s;
+    li.appendChild(b); li.appendChild(p); st.appendChild(li);
+  });
+
+  // コツ
+  const tp=$('bpTip'); tp.textContent='';
+  ((R && R.tp) || ['—']).forEach(s=>{ const li=document.createElement('li'); li.textContent=s; tp.appendChild(li); });
+
+  // 断面
   $('bpSt').textContent = it.s || '—';
   $('bpTx').textContent = (it.x || '—') + (it.x ? '食感' : '');
   $('bpGr').textContent = it.g || '—';
   $('bpPk').textContent = it.p || '—';
+  $('bpCk').textContent = (R && R.ck) ? (R.label + ' ── ' + R.ck) : '';
+  $('bpCk').style.display = (R && R.ck) ? '' : 'none';
 
+  // 味の設計値（縦画面の結果からは外したので、ここが唯一の出しどころ）
+  const bb=$('bpBars'); bb.textContent='';
+  AXES.forEach((a,k)=>{
+    const v=G[a], el=document.createElement('div'); el.className='b';
+    el.innerHTML='<span></span><b>'+String(v).padStart(2,'0')+'</b><i></i>';
+    el.firstChild.textContent=AXJA[k];
+    bb.appendChild(el);
+    requestAnimationFrame(()=>{ el.querySelector('i').style.setProperty('--w', v+'%'); });
+  });
+
+  // 配合
   const box = $('bpMix'); box.textContent='';
   bpMixOf(it).forEach(([n,v])=>{
     const r=document.createElement('div'); r.className='r';
@@ -2192,6 +2539,12 @@ function bpOpen(){
     requestAnimationFrame(()=>{ r.querySelector('i').style.setProperty('--w', Math.min(100,v*2.2)+'%'); });
   });
 
+  // 道具・保存
+  const tl=$('bpTools'); tl.textContent='';
+  ((R && R.tl) || []).forEach(s=>{ const e=document.createElement('span'); e.textContent=s; tl.appendChild(e); });
+  $('bpKeep').textContent = (R && R.kp) ? R.kp : '—';
+
+  // 棚のいちばん近いもの
   const nr = bpNearOf(), nb = $('bpNear');
   if(nr){
     const ds = nr.diff.length
@@ -2209,6 +2562,65 @@ function bpIsOpen(){ return $('bp').classList.contains('on'); }
 
 /* 結果の文章は「そのお菓子がどんな菓子か」を2文で。画像と同時に走らせるので待ち時間は増えない。 */
 let aiText='';
+let resLogged='';   // 同じ結果を毎フレーム記録しないための番人
+
+/* ============================================================
+   持ち帰り ── QRコード
+   ------------------------------------------------------------
+   展示を見た人は「面白かった」で通り過ぎる。手元に何も残らないから。
+   出てきた一枚をそのまま持ち帰れる道を一本だけ引く。
+   工程は最少にする ── カメラを向ける → 絵が開く → 長押しで保存。
+   （読み取った人数はこちらからは分からない。分かるのは
+     「QRを開いた人数」まで。ダッシュボードにもそう書いてある）
+   ============================================================ */
+const PUB_BASE = 'https://gjnzqqf8dq-coder.github.io/okashi-blueprint/';
+function imgUrlOf(item){
+  if(!item || !item.img) return '';
+  const isWeb = (location.protocol==='http:'||location.protocol==='https:')
+             && location.hostname && location.hostname!=='localhost' && location.hostname!=='127.0.0.1';
+  // 手元で開いている時は公開先を指す。会場のiPadでは自分自身のURLになる
+  return isWeb ? new URL('img/'+item.img, location.href).href : PUB_BASE+'img/'+item.img;
+}
+let qrUrlNow='';
+function qrPaint(){
+  const btn=$('gQr'), cv=$('qrC');
+  if(!btn||!cv) return;
+  const url = imgUrlOf(packItem);
+  if(!url || !window.QR){ btn.hidden=true; qrUrlNow=''; return; }
+  if(url===qrUrlNow){ btn.hidden=false; return; }
+  try{
+    QR.toCanvas(cv, url, {ecl:'M', px:96, dpr:(devicePixelRatio||1)*3, margin:3});
+    // 実寸はCSSに任せる。inline styleが残ると縦画面の縮小指定が効かない
+    cv.style.width=''; cv.style.height='';
+    qrUrlNow=url; btn.hidden=false;
+  }catch(e){ console.warn('QR',e); btn.hidden=true; qrUrlNow=''; }
+}
+function qrOpen(){
+  if(!qrUrlNow) return;
+  LOG('qr',{id:packItem?packItem.id:''});
+  try{ QR.toCanvas($('qrBig'), qrUrlNow, {ecl:'M', px:300, dpr:(devicePixelRatio||1)*2, margin:4}); }
+  catch(e){ console.warn('QR big',e); }
+  $('qrName').textContent = packItem ? packItem.name : '';
+  $('qrOv').classList.add('on');
+}
+function qrClose(){ $('qrOv').classList.remove('on'); }
+function qrIsOpen(){ return $('qrOv').classList.contains('on'); }
+
+/* 締めの一文。作品はここで終わる。
+   方向性を5つ用意して ?end=1..5 で切り替えられるようにしてある。
+   1 バトン（既定）／2 感謝／3 半世紀（導入03の問いを回収）／4 実在／5 交代 */
+const ENDS = [
+  'この一枚は、あなたが引いた。次の一枚は、次の人が引く。',
+  '発案、ありがとうございました。',
+  '半世紀後の棚に、これは残っているだろうか。',
+  'これはまだ、世界のどこにも売っていない。',
+  '開発は、ここから次の人へ。'
+];
+function endText(){
+  const m=/[?&]end=(\d)/.exec(location.search);
+  const i=m ? Math.max(1,Math.min(ENDS.length,parseInt(m[1],10)))-1 : 0;
+  return ENDS[i];
+}
 function describe(){
   const dom=['sweet','salt','spicy','sour','umami'].reduce((a,b)=>G[b]>G[a]?b:a);
   const tex=['hard','crisp','creamy'].reduce((a,b)=>G[b]>G[a]?b:a);
@@ -2311,6 +2723,7 @@ $('pClose').onclick=e=>{e.stopPropagation();closeDetail();};
 $('btnGen').onclick=e=>{e.stopPropagation();startConcept();};
 /* 待機画面まで一気に戻す。もどるの終点 */
 function toFloat(){
+  LOG('wake');
   $('ov').classList.remove('on'); kinOn=false; $('genui').classList.remove('on'); $('genui').classList.remove('ready'); $('cta').style.display='';
   $('panel').classList.remove('on');
   $('btnBack').style.display='none';
@@ -2323,6 +2736,8 @@ function toFloat(){
    5問目で押し間違えた人が最初からやり直しになるのは、展示では致命的。 */
 $('btnBack').onclick=e=>{
   e.stopPropagation();
+  LOG('back',{from:navWhere()});
+  if(qrIsOpen()){ qrClose(); return; }   // QRが手前ならまずそれを閉じる
   if(bpIsOpen()){ bpClose(); return; }   // 設計図が手前にあるときは、そこから戻す
   if(MODE==='DETAIL'){ closeDetail(); return; }
   if(MODE==='CONCEPT'){
@@ -2362,14 +2777,29 @@ $('btnBack').onclick=e=>{
   toFloat();
 };
 $('qMake').onclick=()=>{ if(rvOn||gStep!=='READY') return;
+  LOG('make');
   gStep='REVEAL'; orbHide('qMake');       // ここでは粒子を出さない。押した瞬間に実写へ入る
   $('genui').classList.remove('ready');
   document.querySelector('.qhead').style.opacity='0';
   aiImg=null; aiText=''; requestAI(true); requestAIText(); revealStart(); };
-$('qAgain').onclick=()=>{ bpClose(); gStep='INTRO'; qReset(); startGen(); };
+$('qAgain').onclick=()=>{ LOG('again'); bpClose(); gStep='INTRO'; qReset(); startGen(); };
 $('bpGo').onclick=()=>bpOpen();
+$('gQr').onclick=()=>qrOpen();
+$('qrClose').onclick=()=>qrClose();
+$('qrOv').onclick=e=>{ if(e.target===$('qrOv')) qrClose(); };   // 外を触っても閉じる
+/* 結果のホームボタン。押した＝最後まで見届けた、として記録する */
+$('qHome').onclick=()=>{ LOG('end',{id:packItem?packItem.id:''}); qrClose(); bpClose(); toFloat(); };
 $('bpClose').onclick=()=>bpClose();
 $('qBack').onclick=()=>$('btnBack').click();
+/* ホームに戻る＝待機画面（お菓子が漂う画面）まで一気に戻す。
+   結果画面から押されたときだけは「最後まで見届けた」として別に記録する */
+$('btnHome').onclick=e=>{
+  e.stopPropagation();
+  const w=navWhere();
+  if(MODE==='GEN' && gStep==='RESULT') LOG('end',{id:packItem?packItem.id:''});
+  else LOG('home',{from:w});
+  bpClose(); toFloat();
+};
 addEventListener('resize',resize);
 addEventListener('keydown',e=>{ if(e.key==='Escape') $('btnBack').click(); });
 
@@ -2503,6 +2933,10 @@ addEventListener('keydown',e=>{
 window.__dbg=()=>({mode:MODE,step:gStep,rvOn,rvT:+rvT.toFixed(2),ct:+($('rvVid').currentTime||0).toFixed(2),
   rate:$('rvVid').playbackRate,wait:rvWaiting,rvRare,aiImg:!!aiImg,aiMs,aiErr});
 boot();
+/* 起動と待機画面到達を1件ずつ。ダッシュボードの母数はここから始まる */
+LOG('boot',{w:innerWidth,h:innerHeight});
+LOG('wake');
+
 </script>
 </body>
 </html>

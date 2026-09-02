@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>おかしの設計図 — 記録閲覧 / DASHBOARD</title>
+<style>
+:root{
+  --ink:#0d1117;
+  --sub:#7b8595;
+  --line:rgba(13,30,60,.12);
+  --line2:rgba(13,30,60,.06);
+  --cy:#00a2c7;
+  --cy-soft:rgba(0,162,199,.16);
+  --mono:"SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --jp:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:var(--ink)}
+body{
+  font-family:var(--jp);
+  font-size:14px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+  padding:56px 48px 160px;
+}
+.wrap{max-width:1120px;margin:0 auto}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ---- header ---- */
+header{border-bottom:1px solid var(--ink);padding-bottom:18px;margin-bottom:8px}
+h1{
+  font-size:19px;font-weight:600;margin:0 0 6px;letter-spacing:.04em;
+}
+.sub{color:var(--sub);font-size:12px;letter-spacing:.08em}
+.sub .mono{letter-spacing:.02em}
+
+/* ---- controls ---- */
+.bar{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:16px 0 0;
+}
+button, .btn{
+  font-family:var(--jp);font-size:12px;line-height:1;
+  padding:9px 14px;background:#fff;color:var(--ink);
+  border:1px solid var(--line);border-radius:0;
+  cursor:pointer;letter-spacing:.04em;
+  transition:border-color .15s, color .15s;
+}
+button:hover,.btn:hover{border-color:var(--cy);color:var(--cy)}
+button:active{background:#fbfdfe}
+.btn{display:inline-block}
+.btn input{display:none}
+button.danger:hover{border-color:var(--ink);color:var(--ink);background:#f6f7f8}
+.spacer{flex:1 1 40px}
+
+.notice{
+  border:1px solid var(--line);
+  border-left:2px solid var(--cy);
+  padding:14px 18px;margin:22px 0 0;
+  font-size:13px;color:var(--sub);
+}
+.notice b{color:var(--ink);font-weight:600}
+.srcline{font-size:11px;color:var(--sub);letter-spacing:.08em;margin-top:14px}
+.srcline em{font-style:normal;color:var(--cy)}
+
+/* ---- sections ---- */
+section{margin:76px 0 0}
+h2{
+  font-size:11px;font-weight:600;letter-spacing:.22em;color:var(--sub);
+  margin:0 0 22px;padding-bottom:9px;border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;gap:14px;
+}
+h2 .n{font-family:var(--mono);color:var(--cy);letter-spacing:.1em}
+h2 .en{margin-left:auto;letter-spacing:.14em;color:rgba(123,133,149,.6);font-weight:400}
+h3{font-size:12px;font-weight:600;letter-spacing:.1em;margin:34px 0 12px;color:var(--ink)}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.note b{color:var(--ink);font-weight:600}
+.note em{font-style:normal;color:var(--cy);font-weight:600}
+
+/* ---- summary grid ---- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.cell{background:#fff;padding:16px 16px 18px}
+.cell .k{font-size:10.5px;letter-spacing:.12em;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .v{font-family:var(--mono);font-size:26px;line-height:1.25;margin-top:8px;font-variant-numeric:tabular-nums}
+.cell .v small{font-size:12px;color:var(--sub);margin-left:3px;font-family:var(--jp)}
+.cell .x{font-size:11px;color:var(--sub);margin-top:2px;font-family:var(--mono)}
+.cell.hi .v{color:var(--cy)}
+
+/* ---- charts ---- */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font-family:var(--mono);font-size:11px;fill:var(--sub)}
+.chart text.lab{font-family:var(--jp)}
+.chart text.val{fill:var(--ink)}
+.chart .bar{fill:var(--cy-soft)}
+.chart .bar.peak{fill:var(--cy)}
+.chart .axis{stroke:var(--line);stroke-width:1}
+
+.days{display:grid;grid-template-columns:1fr;gap:38px}
+.dayhead{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.dayhead .d{font-size:13px;font-weight:600;letter-spacing:.08em}
+.dayhead .m{font-size:11px;color:var(--sub);font-family:var(--mono)}
+
+/* ---- funnel ---- */
+.fn{border-top:1px solid var(--line)}
+.fnrow{
+  display:grid;grid-template-columns:170px 1fr 74px 84px;gap:14px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line2);
+}
+.fnrow .name{font-size:12px;letter-spacing:.04em}
+.fnrow .name span{color:var(--sub);font-size:10.5px;letter-spacing:.1em;margin-left:6px;font-family:var(--mono)}
+.fnbar{height:9px;background:var(--line2);position:relative}
+.fnbar i{position:absolute;left:0;top:0;bottom:0;background:var(--cy-soft);display:block}
+.fnrow .cnt{font-family:var(--mono);font-size:13px;text-align:right}
+.fnrow .rt{font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--sub)}
+.fnrow.worst{background:rgba(0,162,199,.045)}
+.fnrow.worst .fnbar i{background:var(--cy)}
+.fnrow.worst .rt{color:var(--cy);font-weight:600}
+.fnrow.worst .name{font-weight:600}
+
+/* ---- tables ---- */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{
+  text-align:left;font-weight:600;font-size:10px;letter-spacing:.14em;color:var(--sub);
+  padding:0 10px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line2);vertical-align:top}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-right:14px}
+td.t{font-family:var(--mono);color:var(--sub);white-space:nowrap}
+td.e{font-family:var(--mono);letter-spacing:.04em}
+td.p{font-family:var(--mono);color:var(--sub);word-break:break-all}
+.rank td.r{font-family:var(--mono);color:var(--cy);width:34px}
+.scroll{max-height:520px;overflow:auto;border-bottom:1px solid var(--line)}
+.scroll table{font-size:11.5px}
+.scroll thead th{position:sticky;top:0;background:#fff;z-index:1}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:52px}
+.qblock{margin:0 0 34px}
+.qhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.qhead .qn{font-family:var(--mono);color:var(--cy);font-size:11px;letter-spacing:.1em}
+.qhead .qt{font-size:12.5px;font-weight:600;letter-spacing:.04em}
+.qhead .qs{font-size:11px;color:var(--sub);margin-left:auto;font-family:var(--mono)}
+.verdict{font-size:12px;margin-top:8px}
+.verdict b{color:var(--cy);font-weight:600}
+
+.empty{color:var(--sub);font-size:12px;padding:18px 0;border-bottom:1px solid var(--line2)}
+footer{margin-top:96px;padding-top:18px;border-top:1px solid var(--line);font-size:11px;color:var(--sub);letter-spacing:.06em}
+
+@media (max-width:860px){
+  body{padding:32px 22px 120px}
+  .two{grid-template-columns:1fr;gap:0}
+  .fnrow{grid-template-columns:120px 1fr 56px 66px;gap:9px}
+  .cell .v{font-size:22px}
+  h1{font-size:17px}
+}
+@media (max-width:520px){
+  .fnrow{grid-template-columns:104px 1fr 46px 58px;gap:7px}
+  .fnrow .name{font-size:11px}
+  .fnrow .name span{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>おかしの設計図 ／ OKASHI BLUEPRINT</h1>
+  <div class="sub">来場者記録 閲覧盤　<span class="mono">藝祭2026 — 2026.09.04–09.06 — 東京藝術大学</span></div>
+</header>
+
+<div class="bar">
+  <label class="btn">JSONファイルを読み込む<input type="file" id="fileIn" accept=".json,application/json"></label>
+  <button id="btnLocal">端末の記録を再読込</button>
+  <button id="btnDemo">ダミーデータで表示</button>
+</div>
+
+<div id="banner"></div>
+<div class="srcline" id="srcline"></div>
+
+<div id="out"></div>
+
+<footer>okb.log / localStorage 単一オリジン ・ 外部通信なし ・ このページ単体で完結</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   0. 基本ユーティリティ
+   ========================================================================== */
+var LS_KEY = 'okb.log';
+var TOTAL_SNACKS = 609;
+
+var Q_AXES = [
+  { l:'あまい',          r:'しょっぱい' },
+  { l:'ザクザク',        r:'とろける' },
+  { l:'ひとつで足りる',  r:'つい手がのびる' },
+  { l:'ずっと同じ味',    r:'途中で変わる' },
+  { l:'ひとりで',        r:'みんなで' }
+];
+
+var STEP_JA = {
+  home:'ホーム（待機）', concept:'コンセプト', ask:'設問', ready:'つくる直前',
+  result:'結果', recipe:'レシピ', qr:'QR', end:'締め', boot:'起動直後'
+};
+
+function $(id){ return document.getElementById(id); }
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function pad2(n){ return (n<10?'0':'')+n; }
+function num(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function pct(a,b,dp){
+  if(!b) return '—';
+  var v = a/b*100;
+  return v.toFixed(dp===undefined?1:dp)+'%';
+}
+function pctNum(a,b){ return b? a/b*100 : 0; }
+function dur(ms){
+  if(ms==null || !isFinite(ms)) return '—';
+  var s = Math.round(ms/1000);
+  if(s < 60) return s+'秒';
+  return Math.floor(s/60)+'分'+pad2(s%60)+'秒';
+}
+function dkey(t){
+  var d = new Date(t);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+}
+function dlabel(k){
+  var p = k.split('-');
+  return (+p[1])+'/'+(+p[2]);
+}
+function wdayJa(k){
+  var p = k.split('-');
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  return '日月火水木金土'.charAt(d.getDay());
+}
+function hhmmss(t){
+  var d = new Date(t);
+  return pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
+}
+function isoLocal(t){
+  var d = new Date(t);
+  var off = -d.getTimezoneOffset();
+  var sg = off>=0?'+':'-';
+  off = Math.abs(off);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+
+    pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds())+
+    sg+pad2(Math.floor(off/60))+':'+pad2(off%60);
+}
+function mean(arr){
+  if(!arr.length) return null;
+  var s=0; for(var i=0;i<arr.length;i++) s+=arr[i];
+  return s/arr.length;
+}
+function median(arr){
+  if(!arr.length) return null;
+  var a = arr.slice().sort(function(x,y){return x-y;});
+  var m = Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+
+/* ==========================================================================
+   1. 状態
+   ========================================================================== */
+var state = { events: [], source: 'local', srcNote: '' };
+
+function loadLocal(silent){
+  var raw = null, err = null, arr = [];
+  try { raw = window.localStorage.getItem(LS_KEY); }
+  catch(e){ err = 'localStorage を読めません（' + e.message + '）'; }
+  if(raw){
+    try {
+      var p = JSON.parse(raw);
+      if(Object.prototype.toString.call(p) === '[object Array]') arr = p;
+      else err = 'okb.log が配列ではありません';
+    } catch(e2){ err = 'okb.log の JSON を解釈できません（' + e2.message + '）'; }
+  }
+  state.events = normalize(arr);
+  state.source = 'local';
+  state.srcNote = err ? ('読み込みエラー: ' + err) : '';
+  render();
+}
+
+function normalize(arr){
+  var out = [];
+  for(var i=0;i<arr.length;i++){
+    var ev = arr[i];
+    if(!ev || typeof ev !== 'object') continue;
+    if(typeof ev.t !== 'number' || !ev.e) continue;
+    out.push(ev);
+  }
+  out.sort(function(a,b){ return a.t - b.t; });
+  return out;
+}
+
+/* ==========================================================================
+   2. 集計
+   ========================================================================== */
+function sessionMap(events){
+  var m = {}, order = [];
+  for(var i=0;i<events.length;i++){
+    var ev = events[i];
+    var k = String(ev.s);
+    if(!m[k]){ m[k] = { s: ev.s, ev: [], has: {} }; order.push(k); }
+    m[k].ev.push(ev);
+    m[k].has[ev.e] = true;
+  }
+  return { map:m, keys:order };
+}
+function first(evs, name){
+  for(var i=0;i<evs.length;i++) if(evs[i].e===name) return evs[i];
+  return null;
+}
+function countSessions(sm, test){
+  var n=0;
+  for(var i=0;i<sm.keys.length;i++) if(test(sm.map[sm.keys[i]])) n++;
+  return n;
+}
+
+function analyze(events){
+  var sm = sessionMap(events);
+  var A = { sm:sm, n: events.length };
+
+  A.sessions = sm.keys.length;
+  A.wake     = countSessions(sm, function(S){ return S.has.wake; });
+  A.starts   = countSessions(sm, function(S){ return S.has.start; });
+  A.res      = countSessions(sm, function(S){ return S.has.res; });
+  A.recipe   = countSessions(sm, function(S){ return S.has.recipe; });
+  A.qr       = countSessions(sm, function(S){ return S.has.qr; });
+  A.again    = countSessions(sm, function(S){ return S.has.again; });
+  A.end      = countSessions(sm, function(S){ return S.has.end; });
+  A.make     = countSessions(sm, function(S){ return S.has.make; });
+  A.page2    = countSessions(sm, function(S){
+    for(var i=0;i<S.ev.length;i++) if(S.ev[i].e==='page' && S.ev[i].p===2) return true;
+    return false;
+  });
+  A.askQ = [];
+  for(var q=0;q<5;q++){
+    (function(qq){
+      A.askQ.push(countSessions(sm, function(S){
+        for(var i=0;i<S.ev.length;i++) if(S.ev[i].e==='ask' && S.ev[i].q===qq) return true;
+        return false;
+      }));
+    })(q);
+  }
+
+  /* 所要時間 start → 最初の res */
+  var durs = [];
+  for(var i=0;i<sm.keys.length;i++){
+    var S = sm.map[sm.keys[i]];
+    var a = first(S.ev,'start'), b = first(S.ev,'res');
+    if(a && b && b.t > a.t) durs.push(b.t - a.t);
+  }
+  A.durs = durs;
+  A.durMean = mean(durs);
+  A.durMed  = median(durs);
+
+  /* 日別・時間帯別（start 基準） */
+  var byDay = {}, dayKeys = [], minH = 24, maxH = 0;
+  for(var i=0;i<events.length;i++){
+    var ev = events[i];
+    if(ev.e !== 'start') continue;
+    var k = dkey(ev.t), h = new Date(ev.t).getHours();
+    if(!byDay[k]){ byDay[k] = { total:0, h:{} }; dayKeys.push(k); }
+    byDay[k].total++;
+    byDay[k].h[h] = (byDay[k].h[h]||0)+1;
+    if(h<minH) minH=h;
+    if(h>maxH) maxH=h;
+  }
+  dayKeys.sort();
+  A.byDay = byDay; A.dayKeys = dayKeys;
+  A.minH = (minH<=maxH)? minH : 10;
+  A.maxH = (minH<=maxH)? maxH : 18;
+
+  /* 設問分布（セッション×設問で最後の回答を採用） */
+  var last = {};
+  for(var i=0;i<events.length;i++){
+    var ev = events[i];
+    if(ev.e!=='ask') continue;
+    if(typeof ev.q!=='number' || typeof ev.v!=='number') continue;
+    if(ev.q<0||ev.q>4||ev.v<0||ev.v>8) continue;
+    last[ev.s+'/'+ev.q] = ev.v;
+  }
+  A.qDist = [];
+  for(var q=0;q<5;q++){
+    var bins = [0,0,0,0,0,0,0,0,0], vals = [];
+    for(var key in last){
+      if(!Object.prototype.hasOwnProperty.call(last,key)) continue;
+      if(key.split('/')[1] !== String(q)) continue;
+      var v = last[key];
+      bins[v]++; vals.push(v);
+    }
+    A.qDist.push({ bins:bins, n:vals.length, mean:mean(vals) });
+  }
+
+  /* 離脱 */
+  var idleBy = {}, idleN = 0;
+  for(var i=0;i<events.length;i++){
+    if(events[i].e!=='idle') continue;
+    var st = events[i].step || '(不明)';
+    idleBy[st] = (idleBy[st]||0)+1; idleN++;
+  }
+  A.idleBy = idleBy; A.idleN = idleN;
+
+  /* start したのに res に届かなかったセッションの、答えた設問数 */
+  var stopAt = [0,0,0,0,0,0];
+  var abandoned = 0;
+  for(var i=0;i<sm.keys.length;i++){
+    var S = sm.map[sm.keys[i]];
+    if(!S.has.start || S.has.res) continue;
+    abandoned++;
+    var seen = {};
+    for(var j=0;j<S.ev.length;j++) if(S.ev[j].e==='ask') seen[S.ev[j].q]=1;
+    var c=0; for(var q2=0;q2<5;q2++) if(seen[q2]) c++;
+    stopAt[c]++;
+  }
+  A.stopAt = stopAt; A.abandoned = abandoned;
+
+  /* お菓子ランキング */
+  var byName = {}, names = [], ids = {}, idN = 0, resN = 0;
+  for(var i=0;i<events.length;i++){
+    var ev = events[i];
+    if(ev.e!=='res') continue;
+    resN++;
+    var nm = ev.name || ('(名称なし ' + (ev.id||'?') + ')');
+    if(!byName[nm]){ byName[nm]=0; names.push(nm); }
+    byName[nm]++;
+    if(ev.id!=null && !ids[ev.id]){ ids[ev.id]=1; idN++; }
+  }
+  names.sort(function(a,b){ return byName[b]-byName[a] || (a<b?-1:1); });
+  A.rank = names.slice(0,20).map(function(n){ return { name:n, c:byName[n] }; });
+  A.uniqNames = names.length;
+  A.uniqIds = idN;
+  A.resEvents = resN;
+
+  /* 戻る／ホーム */
+  var backBy = {}, backN = 0, homeBy = {}, homeN = 0;
+  for(var i=0;i<events.length;i++){
+    var ev = events[i];
+    if(ev.e==='back'){ var f=ev.from||'(不明)'; backBy[f]=(backBy[f]||0)+1; backN++; }
+    if(ev.e==='home'){ var f2=ev.from||'(不明)'; homeBy[f2]=(homeBy[f2]||0)+1; homeN++; }
+  }
+  A.backBy=backBy; A.backN=backN; A.homeBy=homeBy; A.homeN=homeN;
+
+  /* ホームの棚タップ */
+  A.shelfN = 0;
+  for(var i=0;i<events.length;i++) if(events[i].e==='shelf') A.shelfN++;
+
+  return A;
+}
+
+/* ==========================================================================
+   3. 図（インライン SVG を手で組む）
+   ========================================================================== */
+function svgVBars(items, opt){
+  opt = opt||{};
+  var W = 960, H = opt.h||168, top = 14, base = H-30;
+  var n = items.length;
+  if(!n) return '<div class="empty">データなし</div>';
+  var maxV = 0;
+  for(var i=0;i<n;i++) if(items[i].v>maxV) maxV = items[i].v;
+  var slot = W/n, bw = Math.min(slot*0.56, 44);
+  var s = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img">';
+  s += '<line class="axis" x1="0" y1="'+base+'" x2="'+W+'" y2="'+base+'"/>';
+  for(var i=0;i<n;i++){
+    var it = items[i];
+    var h = maxV? (it.v/maxV)*(base-top) : 0;
+    var x = slot*i + (slot-bw)/2;
+    if(it.v>0){
+      s += '<rect class="bar'+(it.peak?' peak':'')+'" x="'+x.toFixed(1)+'" y="'+(base-h).toFixed(1)+
+           '" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'"/>';
+      s += '<text class="val" x="'+(slot*i+slot/2).toFixed(1)+'" y="'+(base-h-6).toFixed(1)+
+           '" text-anchor="middle">'+it.v+'</text>';
+    }
+    s += '<text x="'+(slot*i+slot/2).toFixed(1)+'" y="'+(base+16)+'" text-anchor="middle">'+esc(it.k)+'</text>';
+  }
+  s += '</svg>';
+  return s;
+}
+
+function svgHBars(items, opt){
+  opt = opt||{};
+  var W = opt.w||900, rowH = opt.rowH||24, padL = opt.padL||160, padR = opt.padR||78;
+  var n = items.length;
+  if(!n) return '<div class="empty">データなし</div>';
+  var H = n*rowH + 8;
+  var maxV = 0;
+  for(var i=0;i<n;i++) if(items[i].v>maxV) maxV = items[i].v;
+  var track = W - padL - padR;
+  var s = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img">';
+  for(var i=0;i<n;i++){
+    var it = items[i];
+    var y = i*rowH + 4;
+    var bh = Math.min(rowH-9, 13);
+    var w = maxV? (it.v/maxV)*track : 0;
+    s += '<text class="lab" x="'+(padL-10)+'" y="'+(y+bh-2)+'" text-anchor="end">'+esc(it.k)+'</text>';
+    s += '<rect x="'+padL+'" y="'+y+'" width="'+track+'" height="'+bh+'" fill="rgba(13,30,60,.05)"/>';
+    if(w>0) s += '<rect class="bar'+(it.peak?' peak':'')+'" x="'+padL+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+bh+'"/>';
+    s += '<text class="val" x="'+(padL+track+10)+'" y="'+(y+bh-2)+'">'+it.v+
+         (opt.showPct&&opt.total? '  <tspan fill="#7b8595">'+pct(it.v,opt.total,1)+'</tspan>':'')+'</text>';
+  }
+  s += '</svg>';
+  return s;
+}
+
+/* ==========================================================================
+   4. 各セクションの描画
+   ========================================================================== */
+function secSummary(A){
+  var cells = [
+    ['総セッション数',      num(A.sessions), A.n+' events'],
+    ['体験開始 START',      num(A.starts),   pct(A.starts, A.sessions)+' / 全セッション'],
+    ['完走 RESULT',         num(A.res),      ''],
+    ['完走率',              pct(A.res, A.starts), 'start → res', 1],
+    ['平均所要時間',        dur(A.durMean),  '中央値 '+dur(A.durMed)],
+    ['レシピ開封率',        pct(A.recipe, A.res), num(A.recipe)+' 件'],
+    ['QR表示率',            pct(A.qr, A.res),     num(A.qr)+' 件'],
+    ['もう一度つくった率',  pct(A.again, A.res),  num(A.again)+' 件'],
+    ['締めまで到達',        pct(A.end, A.res),    num(A.end)+' 件']
+  ];
+  var h = '<div class="grid">';
+  for(var i=0;i<cells.length;i++){
+    var c = cells[i];
+    h += '<div class="cell'+(c[3]?' hi':'')+'"><div class="k">'+esc(c[0])+'</div>'+
+         '<div class="v">'+esc(c[1])+'</div>'+
+         (c[2]? '<div class="x">'+esc(c[2])+'</div>':'')+'</div>';
+  }
+  h += '</div>';
+  h += '<p class="note">待機画面到達 <b>'+num(A.wake)+'</b> ／ ホームの棚タップ <b>'+num(A.shelfN)+
+       '</b> 回 ／「1つ戻る」<b>'+num(A.backN)+'</b> 回 ／「ホームに戻る」<b>'+num(A.homeN)+
+       '</b> 回 ／ 無操作復帰 <b>'+num(A.idleN)+'</b> 回。</p>';
+  return h;
+}
+
+function secHourly(A){
+  if(!A.dayKeys.length) return '<div class="empty">start イベントがありません。</div>';
+  var h = '<div class="days">';
+  var globalPeak = { day:'', hour:-1, v:-1 };
+  for(var d=0; d<A.dayKeys.length; d++){
+    var k = A.dayKeys[d], D = A.byDay[k];
+    var peakH = -1, peakV = -1;
+    for(var hh=A.minH; hh<=A.maxH; hh++){
+      var v = D.h[hh]||0;
+      if(v>peakV){ peakV=v; peakH=hh; }
+    }
+    if(peakV > globalPeak.v){ globalPeak = { day:k, hour:peakH, v:peakV }; }
+    var items = [];
+    for(var hh=A.minH; hh<=A.maxH; hh++){
+      items.push({ k: hh+'時', v: D.h[hh]||0, peak: (hh===peakH && peakV>0) });
+    }
+    h += '<div><div class="dayhead"><span class="d">'+dlabel(k)+'（'+wdayJa(k)+'）</span>'+
+         '<span class="m">体験開始 '+num(D.total)+' ／ ピーク '+(peakH>=0?peakH+':00–'+(peakH+1)+':00':'—')+
+         '（'+peakV+'）</span></div>'+
+         svgVBars(items)+'</div>';
+  }
+  h += '</div>';
+  if(globalPeak.hour>=0){
+    h += '<p class="note">全期間のピークは <em>'+dlabel(globalPeak.day)+'（'+wdayJa(globalPeak.day)+'） '+
+         globalPeak.hour+':00–'+(globalPeak.hour+1)+':00</em> の <b>'+globalPeak.v+
+         '</b> 件。棒は各日 '+A.minH+'時〜'+A.maxH+'時の1時間刻み、値は「start」の件数。</p>';
+  }
+  return h;
+}
+
+function secFunnel(A){
+  var rows = [
+    { name:'待機画面',       tag:'wake',   v:A.wake },
+    { name:'体験開始',       tag:'start',  v:A.starts },
+    { name:'コンセプト3枚目', tag:'page 2', v:A.page2 },
+    { name:'設問1 回答',     tag:'ask 0',  v:A.askQ[0] },
+    { name:'設問2 回答',     tag:'ask 1',  v:A.askQ[1] },
+    { name:'設問3 回答',     tag:'ask 2',  v:A.askQ[2] },
+    { name:'設問4 回答',     tag:'ask 3',  v:A.askQ[3] },
+    { name:'設問5 回答',     tag:'ask 4',  v:A.askQ[4] },
+    { name:'つくる',         tag:'make',   v:A.make },
+    { name:'結果',           tag:'res',    v:A.res },
+    { name:'レシピ',         tag:'recipe', v:A.recipe },
+    { name:'QR',             tag:'qr',     v:A.qr },
+    { name:'締め',           tag:'end',    v:A.end }
+  ];
+  var top = rows[0].v || 1;
+  var worst = -1, worstRt = 2;
+  for(var i=1;i<rows.length;i++){
+    var prev = rows[i-1].v;
+    rows[i].rt = prev ? rows[i].v/prev : null;
+    if(prev >= 5 && rows[i].rt !== null && rows[i].rt < worstRt){ worstRt = rows[i].rt; worst = i; }
+  }
+  var h = '<div class="fn">';
+  for(var i=0;i<rows.length;i++){
+    var r = rows[i];
+    h += '<div class="fnrow'+(i===worst?' worst':'')+'">'+
+      '<div class="name">'+esc(r.name)+'<span>'+esc(r.tag)+'</span></div>'+
+      '<div class="fnbar"><i style="width:'+(top? (r.v/top*100).toFixed(2):0)+'%"></i></div>'+
+      '<div class="cnt">'+num(r.v)+'</div>'+
+      '<div class="rt">'+(i===0? '—' : (r.rt===null? '—' : (r.rt*100).toFixed(1)+'%'))+'</div>'+
+      '</div>';
+  }
+  h += '</div>';
+  if(worst>0){
+    var lost = rows[worst-1].v - rows[worst].v;
+    h += '<p class="note">いちばん落ちているのは <em>'+esc(rows[worst-1].name)+' → '+esc(rows[worst].name)+
+         '</em>。<b>'+num(lost)+'</b> 人（残存 '+(worstRt*100).toFixed(1)+'%）がここで抜けている。'+
+         '数字は「その段に到達したセッション数」、右列は直前の段からの残存率。</p>';
+  }
+  return h;
+}
+
+function secQuestions(A){
+  var h = '<div class="two"><div>';
+  for(var q=0;q<5;q++){
+    if(q===3) h += '</div><div>';
+    var D = A.qDist[q], ax = Q_AXES[q];
+    var items = [];
+    var maxBin = 0, maxIdx = 0;
+    for(var v=0;v<9;v++) if(D.bins[v]>maxBin){ maxBin=D.bins[v]; maxIdx=v; }
+    for(var v=0;v<9;v++){
+      var lab = (v+1)+(v===0? '　'+ax.l : (v===8? '　'+ax.r : ''));
+      items.push({ k: lab, v: D.bins[v], peak: (D.bins[v]===maxBin && maxBin>0) });
+    }
+    var m = D.mean;
+    var verdict;
+    if(m===null){ verdict = '回答なし'; }
+    else {
+      var disp = (m+1).toFixed(1);
+      var side;
+      if(m < 3.6)      side = ax.l+'寄り';
+      else if(m > 4.4) side = ax.r+'寄り';
+      else             side = 'まんなか（どちらにも寄らず）';
+      verdict = side+'（平均 '+disp+' / 9段階）';
+    }
+    h += '<div class="qblock">'+
+      '<div class="qhead"><span class="qn">Q'+(q+1)+'</span>'+
+      '<span class="qt">'+esc(ax.l)+' ←→ '+esc(ax.r)+'</span>'+
+      '<span class="qs">n='+num(D.n)+'</span></div>'+
+      svgHBars(items, { w:520, rowH:20, padL:118, padR:62, showPct:true, total:D.n })+
+      '<div class="verdict">→ <b>'+esc(verdict)+'</b></div></div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function secDrop(A){
+  var h = '<h3>無操作でホームへ戻された画面（idle）</h3>';
+  var keys = [];
+  for(var k in A.idleBy) if(Object.prototype.hasOwnProperty.call(A.idleBy,k)) keys.push(k);
+  keys.sort(function(a,b){ return A.idleBy[b]-A.idleBy[a]; });
+  if(!keys.length){ h += '<div class="empty">idle イベントはありません。</div>'; }
+  else {
+    var items = keys.map(function(k){
+      return { k: (STEP_JA[k]||k)+'（'+k+'）', v: A.idleBy[k] };
+    });
+    items[0].peak = true;
+    h += svgHBars(items, { rowH:26, padL:210, showPct:true, total:A.idleN });
+    h += '<p class="note">合計 <b>'+num(A.idleN)+'</b> 回。最も多いのは <em>'+
+         esc(STEP_JA[keys[0]]||keys[0])+'</em>（'+num(A.idleBy[keys[0]])+' 回・'+
+         pct(A.idleBy[keys[0]], A.idleN)+'）。</p>';
+  }
+
+  h += '<h3>体験開始したが結果に届かなかったセッション：どこまで答えたか</h3>';
+  if(!A.abandoned){ h += '<div class="empty">途中離脱はありません。</div>'; }
+  else {
+    var labs = ['0問（設問に入らず）','1問まで','2問まで','3問まで','4問まで','5問（回答済だが結果なし）'];
+    var it2 = [], mx = 0, mi = 0;
+    for(var i=0;i<6;i++){ if(A.stopAt[i]>mx){ mx=A.stopAt[i]; mi=i; } }
+    for(var i=0;i<6;i++) it2.push({ k:labs[i], v:A.stopAt[i], peak:(i===mi && mx>0) });
+    h += svgHBars(it2, { rowH:26, padL:230, showPct:true, total:A.abandoned });
+    h += '<p class="note">離脱 <b>'+num(A.abandoned)+'</b> セッション中、最多は <em>'+esc(labs[mi])+
+         '</em>（'+num(mx)+'・'+pct(mx, A.abandoned)+'）。</p>';
+  }
+
+  var bk = [];
+  for(var k2 in A.backBy) if(Object.prototype.hasOwnProperty.call(A.backBy,k2)) bk.push(k2);
+  if(bk.length){
+    bk.sort(function(a,b){ return A.backBy[b]-A.backBy[a]; });
+    h += '<h3>「1つ戻る」を押した画面</h3>';
+    h += svgHBars(bk.map(function(k){ return { k:(STEP_JA[k]||k)+'（'+k+'）', v:A.backBy[k] }; }),
+                  { rowH:24, padL:210, showPct:true, total:A.backN });
+  }
+  return h;
+}
+
+function secRank(A){
+  if(!A.rank.length) return '<div class="empty">res イベントがありません。</div>';
+  var h = '<p class="note">結果イベント <b>'+num(A.resEvents)+'</b> 件。'+
+    '出たお菓子は <em>'+num(A.uniqIds||A.uniqNames)+'</em> 種類 ／ 全 '+num(TOTAL_SNACKS)+
+    ' 種（カバー率 '+pct(A.uniqIds||A.uniqNames, TOTAL_SNACKS)+'）。未登場は '+
+    num(Math.max(0, TOTAL_SNACKS-(A.uniqIds||A.uniqNames)))+' 種。</p>';
+  h += '<table class="rank"><thead><tr><th>#</th><th>商品名</th><th class="num">件数</th>'+
+       '<th class="num">構成比</th><th></th></tr></thead><tbody>';
+  var top = A.rank[0].c;
+  for(var i=0;i<A.rank.length;i++){
+    var r = A.rank[i];
+    h += '<tr><td class="r">'+pad2(i+1)+'</td><td>'+esc(r.name)+'</td>'+
+      '<td class="num">'+r.c+'</td><td class="num" style="color:#7b8595">'+pct(r.c,A.resEvents)+'</td>'+
+      '<td style="width:34%"><span style="display:block;height:7px;background:'+
+      (i===0?'var(--cy)':'var(--cy-soft)')+';width:'+(r.c/top*100).toFixed(1)+'%"></span></td></tr>';
+  }
+  h += '</tbody></table>';
+  return h;
+}
+
+function payloadOf(ev){
+  var o = {};
+  for(var k in ev){
+    if(!Object.prototype.hasOwnProperty.call(ev,k)) continue;
+    if(k==='t'||k==='s'||k==='e') continue;
+    o[k] = ev[k];
+  }
+  return o;
+}
+
+function secExport(A){
+  var h = '<p class="note">いま表示している <b>'+num(A.n)+'</b> 件を書き出します。'+
+    'CSV は 1行=1イベント、列は <span class="mono">t（ISO文字列・端末のタイムゾーン）／ s ／ e</span> と、'+
+    'ペイロードを展開した列（<span class="mono">a i id name p q step v from</span> のうち存在するもの）。'+
+    '配列は <span class="mono">|</span> 区切り、先頭に BOM を付けるので Excel でそのまま開けます。</p>';
+  h += '<div class="bar" style="padding-top:6px">'+
+    '<button id="btnJson">JSONをダウンロード</button>'+
+    '<button id="btnCsv">CSVをダウンロード</button>'+
+    '<button id="btnClip">クリップボードにコピー</button>'+
+    '</div>';
+  return h;
+}
+
+function secDanger(A){
+  var h = '<p class="note"><b>取り消せません。</b> 端末の <span class="mono">localStorage[\'okb.log\']</span> を'+
+    '完全に削除します。押すと2段階の確認（確認ダイアログ →「DELETE」の入力）が出ます。'+
+    'ダミーデータ／読み込んだファイルを表示しているときは実行できません。'+
+    '<b>先に 08 で JSON を保存してください。</b></p>';
+  h += '<div class="bar" style="padding-top:6px">'+
+    '<button id="btnClear" class="danger">ログを消去</button>'+
+    '<span class="sub mono" style="margin-left:6px">現在の対象: '+
+    (state.source==='local' ? num(A.n)+' 件（端末の実記録）' : '実記録ではないため実行不可') + '</span>'+
+    '</div>';
+  return h;
+}
+
+function secRaw(A, events){
+  var n = Math.min(200, events.length);
+  if(!n) return '<div class="empty">イベントがありません。</div>';
+  var multiDay = A.dayKeys.length > 1;
+  var h = '<p class="note">直近 <b>'+n+'</b> 件（全 '+num(events.length)+' 件中）。新しいものが上。</p>';
+  h += '<div class="scroll"><table><thead><tr><th>時刻</th><th class="num">S</th>'+
+       '<th>EVENT</th><th>PAYLOAD</th></tr></thead><tbody>';
+  for(var i=events.length-1; i>=events.length-n; i--){
+    var ev = events[i];
+    var d = new Date(ev.t);
+    var ts = (multiDay ? (d.getMonth()+1)+'/'+d.getDate()+' ' : '') + hhmmss(ev.t);
+    var p = payloadOf(ev);
+    var ps = JSON.stringify(p);
+    if(ps === '{}') ps = '';
+    h += '<tr><td class="t">'+esc(ts)+'</td><td class="num">'+esc(ev.s)+'</td>'+
+         '<td class="e">'+esc(ev.e)+'</td><td class="p">'+esc(ps)+'</td></tr>';
+  }
+  h += '</tbody></table></div>';
+  return h;
+}
+
+/* ==========================================================================
+   5. 全体描画
+   ========================================================================== */
+function render(){
+  var ev = state.events;
+  var A = analyze(ev);
+  window.__A = A;
+
+  /* 上部の案内 */
+  var b = '';
+  if(state.srcNote){
+    b += '<div class="notice"><b>'+esc(state.srcNote)+'</b></div>';
+  }
+  if(!ev.length){
+    b += '<div class="notice"><b>まだ記録がありません。</b> このページは同一オリジンの '+
+      '<span class="mono">localStorage[\'okb.log\']</span> を読みます。'+
+      '展示端末（iPad）で開くか、書き出した JSON を「JSONファイルを読み込む」から読ませてください。'+
+      '見た目を確認したいときは <span class="mono">?demo=1</span> を付けるか「ダミーデータで表示」を押してください。</div>';
+  } else if(state.source === 'demo'){
+    b += '<div class="notice"><b>ダミーデータ表示中。</b> 実データには一切書き込んでいません（メモリ上だけ）。'+
+      '端末の実記録に戻すには「端末の記録を再読込」を押してください。</div>';
+  }
+  $('banner').innerHTML = b;
+
+  var srcTxt = { local:'localStorage / okb.log', demo:'ダミーデータ（メモリ上）', file:'読み込んだ JSON ファイル' }[state.source];
+  $('srcline').innerHTML = 'SOURCE <em>'+esc(srcTxt)+'</em> ／ EVENTS <span class="mono">'+num(ev.length)+
+    '</span> ／ SESSIONS <span class="mono">'+num(A.sessions)+'</span>'+
+    (ev.length? ' ／ RANGE <span class="mono">'+esc(isoLocal(ev[0].t).slice(0,16).replace('T',' '))+' — '+
+      esc(isoLocal(ev[ev.length-1].t).slice(0,16).replace('T',' '))+'</span>' : '');
+
+  function S(n, ja, en, body){
+    return '<section><h2><span class="n">'+n+'</span>'+esc(ja)+'<span class="en">'+esc(en)+'</span></h2>'+body+'</section>';
+  }
+
+  var html = '';
+  html += S('01','サマリー','SUMMARY',            secSummary(A));
+  html += S('02','日別・時間帯別','TRAFFIC',      secHourly(A));
+  html += S('03','ファネル','FUNNEL',             secFunnel(A));
+  html += S('04','設問ごとの回答分布','ANSWERS',  secQuestions(A));
+  html += S('05','離脱ポイント','DROP-OFF',       secDrop(A));
+  html += S('06','出たお菓子ランキング','RANKING',secRank(A));
+  html += S('07','生ログ','RAW LOG',              secRaw(A, ev));
+  html += S('08','書き出し','EXPORT',             secExport(A));
+  html += S('09','危険操作','DANGER ZONE',        secDanger(A));
+  $('out').innerHTML = html;
+  bindActions();
+}
+
+/* ==========================================================================
+   6. 書き出し
+   ========================================================================== */
+function toJson(){ return JSON.stringify(state.events, null, 2); }
+
+function csvCell(v){
+  if(v===undefined || v===null) return '';
+  if(Object.prototype.toString.call(v)==='[object Array]') v = v.join('|');
+  else if(typeof v === 'object') v = JSON.stringify(v);
+  v = String(v);
+  if(/[",\r\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function toCsv(){
+  var ev = state.events;
+  var keys = [], seen = {};
+  for(var i=0;i<ev.length;i++){
+    var p = payloadOf(ev[i]);
+    for(var k in p){
+      if(!Object.prototype.hasOwnProperty.call(p,k)) continue;
+      if(!seen[k]){ seen[k]=1; keys.push(k); }
+    }
+  }
+  keys.sort();
+  var head = ['t','s','e'].concat(keys);
+  var lines = [head.join(',')];
+  for(var i=0;i<ev.length;i++){
+    var e = ev[i];
+    var row = [isoLocal(e.t), e.s, e.e];
+    for(var j=0;j<keys.length;j++) row.push(e[keys[j]]);
+    lines.push(row.map(csvCell).join(','));
+  }
+  return '﻿' + lines.join('\r\n');
+}
+function stamp(){
+  var d = new Date();
+  return d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'-'+pad2(d.getHours())+pad2(d.getMinutes());
+}
+function download(text, name, mime){
+  try{
+    var blob = new Blob([text], { type: mime+';charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+  } catch(e){
+    alert('ダウンロードできませんでした: ' + e.message);
+  }
+}
+function copyClip(){
+  var txt = toJson();
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position='fixed'; ta.style.top='-1000px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+    alert(ok ? 'JSON をクリップボードにコピーしました。' : 'コピーできませんでした。手動で選択してください。');
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){
+      alert('JSON をクリップボードにコピーしました（'+num(state.events.length)+' 件）。');
+    }, fallback);
+  } else fallback();
+}
+
+/* ==========================================================================
+   7. 危険操作
+   ========================================================================== */
+function clearLog(){
+  if(state.source !== 'local'){
+    alert('いま表示しているのは端末の実記録ではありません（' +
+      (state.source==='demo'?'ダミーデータ':'読み込んだファイル') +
+      '）。消去は「端末の記録を再読込」で実記録を表示しているときだけ行えます。');
+    return;
+  }
+  var n = state.events.length;
+  if(!n){ alert('消去するログがありません。'); return; }
+  if(!window.confirm(
+      '【第1段階】端末の記録 ' + n + ' 件をすべて消去します。\n' +
+      'この操作は取り消せません。先に「JSONをダウンロード」で保存しましたか？\n\n' +
+      'このまま進みますか？')) return;
+  var typed = window.prompt('【第2段階】本当に消去する場合は、下の欄に DELETE と入力してください。', '');
+  if(typed !== 'DELETE'){ alert('中止しました。ログは消えていません。'); return; }
+  try{
+    window.localStorage.removeItem(LS_KEY);
+    alert('okb.log を消去しました。');
+  } catch(e){
+    alert('消去できませんでした: ' + e.message);
+  }
+  loadLocal();
+}
+
+/* ==========================================================================
+   8. ダミーデータ生成（実データには触れない）
+   ========================================================================== */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var NM_A = ['ほろり','さくり','とろん','ぱりん','しゅわ','こくり','ふわり','じんわり','ぱちり','もちり','からり','きゅうり'];
+var NM_B = ['三日月','海鳴り','夜明け','初雪','木漏れ日','遠雷','砂時計','風待ち','余白','置き手紙','静電気','逆光','放課後','等圧線','小惑星','待ち合わせ','水平線','うたた寝'];
+var NM_C = ['','ミニ','特濃'];
+function snackName(idx){
+  var a = idx % 12, b = Math.floor(idx/12) % 18, c = Math.floor(idx/216) % 3;
+  return NM_C[c] + NM_A[a] + NM_B[b];
+}
+function snackId(idx){
+  var s = String(idx+1);
+  while(s.length < 4) s = '0'+s;
+  return s;
+}
+
+function makeDemo(){
+  var rnd = mulberry32(20260904);
+  var days = [[2026,8,4],[2026,8,5],[2026,8,6]];
+  var counts = [92, 118, 96];
+  var ev = [];
+  var sid = 0;
+  var hourWeights = { 10:4, 11:8, 12:13, 13:15, 14:12, 15:14, 16:11, 17:8, 18:3 };
+
+  function pickHour(){
+    var tot = 0, k;
+    for(k in hourWeights) tot += hourWeights[k];
+    var r = rnd()*tot;
+    for(k in hourWeights){ r -= hourWeights[k]; if(r <= 0) return +k; }
+    return 13;
+  }
+  function bell(){ return (rnd()+rnd()+rnd())/3; }
+
+  for(var d=0; d<days.length; d++){
+    var D = days[d];
+    var seeds = [];
+    for(var i=0;i<counts[d];i++){
+      var hh = pickHour();
+      seeds.push(new Date(D[0],D[1],D[2],hh,Math.floor(rnd()*60),Math.floor(rnd()*60)).getTime());
+    }
+    seeds.sort(function(a,b){ return a-b; });
+
+    /* 開場時の boot */
+    ev.push({ t: new Date(D[0],D[1],D[2],9,42,0).getTime(), s: sid+1, e:'boot' });
+
+    for(var i=0;i<seeds.length;i++){
+      sid++;
+      var t = seeds[i];
+      var S = sid;
+      function push(e, p){
+        var o = { t: Math.round(t), s: S, e: e };
+        if(p) for(var k in p) if(Object.prototype.hasOwnProperty.call(p,k)) o[k] = p[k];
+        ev.push(o);
+      }
+      function adv(lo, hi){ t += lo + rnd()*(hi-lo); }
+
+      push('wake');
+      adv(400, 3000);
+
+      /* 棚をつつくだけの人 */
+      var pokes = rnd() < .55 ? Math.floor(rnd()*4) : 0;
+      for(var pk=0; pk<pokes; pk++){
+        push('shelf', { i: Math.floor(rnd()*24) });
+        adv(700, 3200);
+      }
+
+      /* 待機画面で離脱 */
+      if(rnd() < 0.17){
+        adv(20000, 55000);
+        push('idle', { step:'home' });
+        continue;
+      }
+
+      push('start');
+      adv(600, 2000);
+
+      /* コンセプト 3 ページ */
+      var maxPage = 3;
+      var conceptDrop = rnd();
+      if(conceptDrop < 0.06) maxPage = 1;
+      else if(conceptDrop < 0.11) maxPage = 2;
+      for(var p=0; p<maxPage; p++){
+        push('page', { p: p });
+        adv(2600, 8500);
+      }
+      if(maxPage < 3){
+        if(rnd() < .5){ push('idle', { step:'concept' }); }
+        else { push('home', { from:'concept' }); }
+        continue;
+      }
+
+      /* 設問 */
+      var answers = [];
+      var bailed = false;
+      for(var q=0; q<5; q++){
+        /* たまに戻る */
+        if(q>0 && rnd() < 0.07){
+          push('back', { from:'ask' });
+          adv(900, 3000);
+          var vprev = Math.max(0, Math.min(8, Math.round(2 + (bell()-0.5)*8 + rnd()*2)));
+          push('ask', { q: q-1, v: vprev });
+          answers[q-1] = vprev;
+          adv(1200, 4000);
+        }
+        /* 離脱 */
+        if(rnd() < 0.045){
+          adv(22000, 60000);
+          push('idle', { step:'ask' });
+          bailed = true; break;
+        }
+        var base;
+        if(q===0)      base = 0.33;   /* あまい寄り */
+        else if(q===1) base = 0.41;
+        else if(q===2) base = 0.68;   /* つい手がのびる寄り */
+        else if(q===3) base = 0.50;
+        else           base = 0.63;   /* みんなで 寄り */
+        var v = Math.round(base*8 + (bell()-0.5)*7.5 + (rnd()-0.5)*1.4);
+        v = Math.max(0, Math.min(8, v));
+        push('ask', { q:q, v:v });
+        answers[q] = v;
+        adv(2400, 9000);
+      }
+      if(bailed) continue;
+
+      /* つくる直前 */
+      if(rnd() < 0.03){
+        adv(20000, 50000);
+        push('idle', { step:'ready' });
+        continue;
+      }
+      if(rnd() < 0.02){
+        push('back', { from:'ready' });
+        adv(1000, 3000);
+        push('ask', { q:4, v: answers[4] });
+        adv(1200, 3000);
+      }
+
+      push('make');
+      adv(3200, 7500);
+
+      var idx = 0;
+      for(var q2=0; q2<5; q2++) idx += answers[q2] * Math.pow(3, q2);
+      idx = idx % TOTAL_SNACKS;
+      /* 人気の偏りを作る */
+      if(rnd() < 0.22) idx = Math.floor(rnd()*40);
+      var id = snackId(idx);
+      push('res', { id:id, name: snackName(idx), a: answers.slice(0,5) });
+      adv(3000, 12000);
+
+      var again = false;
+      if(rnd() < 0.62){
+        push('recipe', { id:id });
+        adv(4000, 18000);
+        if(rnd() < 0.06){ push('back', { from:'recipe' }); adv(1000,3000); }
+        if(rnd() < 0.46){
+          push('qr', { id:id });
+          adv(4000, 16000);
+        }
+      } else if(rnd() < 0.10){
+        push('qr', { id:id });
+        adv(3000, 10000);
+      }
+
+      if(rnd() < 0.12){
+        push('again');
+        adv(1500, 4000);
+        again = true;
+        var idx2 = Math.floor(rnd()*TOTAL_SNACKS);
+        push('res', { id: snackId(idx2), name: snackName(idx2), a: answers.slice(0,5) });
+        adv(4000, 12000);
+      }
+
+      var r = rnd();
+      if(r < 0.55){
+        push('end', { id:id });
+        adv(2000, 8000);
+        if(rnd() < .45) push('home', { from:'end' });
+      } else if(r < 0.78){
+        push('home', { from:'result' });
+      } else {
+        adv(25000, 70000);
+        push('idle', { step: 'result' });
+      }
+    }
+  }
+  ev.sort(function(a,b){ return a.t - b.t; });
+  return ev;
+}
+
+/* ==========================================================================
+   9. 起動
+   ========================================================================== */
+function bindActions(){
+  $('btnJson').onclick = function(){
+    if(!state.events.length){ alert('書き出すデータがありません。'); return; }
+    download(toJson(), 'okb-log-'+stamp()+'.json', 'application/json');
+  };
+  $('btnCsv').onclick = function(){
+    if(!state.events.length){ alert('書き出すデータがありません。'); return; }
+    download(toCsv(), 'okb-log-'+stamp()+'.csv', 'text/csv');
+  };
+  $('btnClip').onclick = function(){
+    if(!state.events.length){ alert('コピーするデータがありません。'); return; }
+    copyClip();
+  };
+  $('btnClear').onclick = clearLog;
+}
+
+$('btnLocal').onclick = function(){ loadLocal(); };
+$('btnDemo').onclick  = function(){
+  state.events = normalize(makeDemo());
+  state.source = 'demo';
+  state.srcNote = '';
+  render();
+};
+$('fileIn').onchange = function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    try{
+      var p = JSON.parse(String(fr.result));
+      if(Object.prototype.toString.call(p) !== '[object Array]') throw new Error('配列ではありません');
+      state.events = normalize(p);
+      state.source = 'file';
+      state.srcNote = '読み込み: ' + f.name + '（' + num(state.events.length) + ' 件）';
+      render();
+      window.scrollTo(0,0);
+    } catch(err){
+      alert('JSON を読めませんでした: ' + err.message);
+    }
+  };
+  fr.onerror = function(){ alert('ファイルを読めませんでした。'); };
+  fr.readAsText(f);
+  e.target.value = '';
+};
+
+(function boot(){
+  var demo = /[?&]demo=1(&|$)/.test(window.location.search);
+  if(demo){
+    state.events = normalize(makeDemo());
+    state.source = 'demo';
+    render();
+  } else {
+    loadLocal();
+  }
+})();
+</script>
+</body>
+</html>
