@@ -92,7 +92,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);touch-action:manipula
 /* 設問画面にも同じ役目のボタンがあった。2つ出るので、こちらに寄せる */
 .qback{display:none!important}
 @media(max-width:820px){
-  .backlink,.homelink{bottom:22px;font-size:10.5px;letter-spacing:.14em;padding:10px 13px}
+  .backlink,.homelink{bottom:14px;font-size:10.5px;letter-spacing:.14em;padding:10px 13px}
   .backlink{left:14px} .homelink{right:14px}
 }
 
@@ -170,11 +170,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);touch-action:manipula
 /* 生成画面では元のHUDを隠す。もどるは以前ここで隠して .qback に任せていたが、
    ボタンが2つ出るのをやめて .backlink 1本にしたので、隠してはいけない */
 body.genmode .hud.tl,body.genmode .hud.bl{display:none}
-.qhead{position:absolute;top:38px;left:44px}
+/* 目盛りは画面の端から端まで。中途半端に左に寄っていると、
+   5問のうち何問目かが読めない（実機で寄って見えた） */
+.qhead{position:absolute;top:38px;left:44px;right:44px}
 .qbrand{font-size:14px;font-weight:800;letter-spacing:.26em;color:var(--ink)}
 .qnum{font-size:12px;letter-spacing:.2em;color:var(--sub);margin-top:8px}
 .qnum b{color:var(--cy);font-weight:700}
-.qtrack{position:relative;width:330px;height:1px;background:#c9ced6;margin-top:26px}
+.qtrack{position:relative;width:100%;height:1px;background:#c9ced6;margin-top:26px}
 .qtrack i{position:absolute;left:0;top:0;height:1px;background:var(--cy);width:8%;
   transition:width .75s cubic-bezier(.16,1,.3,1)}
 .qticks{position:absolute;top:-6px;bottom:-6px;left:0;right:0;display:flex;justify-content:space-between}
@@ -187,7 +189,7 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   border-radius:50%;background:var(--cy)}
 
 .qwrap{position:absolute;left:0;right:0;top:30vh;text-align:center;pointer-events:auto}
-.qtitle{font-size:clamp(26px,3.1vw,38px);font-weight:700;letter-spacing:.04em;margin-bottom:96px;
+.qtitle{font-size:clamp(28px,3.4vw,42px);font-weight:700;letter-spacing:.04em;margin-bottom:88px;
   line-height:1.4;white-space:nowrap;max-width:96vw;margin-left:auto;margin-right:auto}
 .qtitle em{font-style:normal;font-weight:400;font-size:.58em;color:var(--sub);
   letter-spacing:.1em;margin:0 .55em 0 .34em;vertical-align:.06em}
@@ -196,8 +198,10 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 /* 9個の丸。全部同じ白丸だと世論調査の用紙になる。
    左端の味から右端の味へ、丸そのものを色で渡していく。
    ＝答えている最中も「味を選んでいる」ことが目に見える */
-.qcircles{display:flex;justify-content:center;align-items:center;gap:clamp(14px,2.6vw,42px);position:relative}
-.qcircles button{width:clamp(38px,3.4vw,54px);height:clamp(38px,3.4vw,54px);border-radius:50%;
+/* 9個の丸も端から端まで。等間隔の9列に置く＝目盛りそのものになる */
+.qcircles{display:grid;grid-template-columns:repeat(9,1fr);align-items:center;justify-items:center;
+  width:min(920px,94vw);margin:0 auto;position:relative}
+.qcircles button{width:min(9.4vw,62px);height:min(9.4vw,62px);border-radius:50%;
   border:1.5px solid var(--qc,#0d1117);background:var(--qbg,transparent);
   cursor:pointer;position:relative;padding:0;
   transition:transform .45s cubic-bezier(.34,1.56,.64,1),border-color .3s,background .3s,box-shadow .3s}
@@ -213,18 +217,11 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   border:2px solid var(--qc,#0d1117);animation:qring .55s cubic-bezier(.16,1,.3,1) forwards;pointer-events:none}
 @keyframes qring{0%{transform:scale(.8);opacity:.9}100%{transform:scale(2.1);opacity:0}}
 
-.qaxis{position:relative;margin-top:30px;display:flex;justify-content:space-between;align-items:flex-start;
-  width:min(780px,74vw);margin-left:auto;margin-right:auto;
-  font-size:21px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
-.qaxis span,.qaxis b{font-weight:700;display:flex;flex-direction:column;align-items:center;gap:9px}
-/* 両端の味に絵をつける。文字だけだと読む作業になる。
-   絵は板に載せる。枠と内枠の細い罫が、絵を「置いてあるもの」にする */
-.qaxis .ic{position:relative;display:flex;align-items:center;justify-content:center;
-  width:clamp(58px,5.4vw,80px);height:clamp(58px,5.4vw,80px);
-  color:var(--c);border:1px solid var(--cb);background:var(--cf);border-radius:2px}
-.qaxis .ic::after{content:'';position:absolute;left:5px;top:5px;right:5px;bottom:5px;
-  border:1px solid var(--cb);opacity:.34;border-radius:1px;pointer-events:none}
-.qaxis .ic svg{width:64%;height:64%;overflow:visible}
+.qaxis{position:relative;margin-top:26px;display:flex;justify-content:space-between;align-items:flex-start;
+  width:min(920px,94vw);margin-left:auto;margin-right:auto;
+  font-size:clamp(19px,2.1vw,26px);font-weight:800;letter-spacing:.06em;color:var(--ink)}
+.qaxis span,.qaxis b{font-weight:800}
+/* 両端は色だけ。丸の並びの左端の色＝左の味、右端の色＝右の味 */
 .qrule{position:absolute;left:0;right:0;top:-16px;height:9px;
   background:repeating-linear-gradient(90deg,#c9ced6 0 1px,transparent 1px 32px);
   border-top:1px solid #dfe3e9}
@@ -268,19 +265,25 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 .qback{position:fixed;left:44px;bottom:44px;z-index:7;font:inherit;font-size:11px;letter-spacing:.22em;
   color:var(--sub);background:none;border:none;cursor:pointer;padding:8px 4px;pointer-events:auto}
 .qback:hover{color:var(--ink)}
-.gres{position:absolute;left:0;right:0;bottom:132px;text-align:center;pointer-events:none;opacity:0;
+.gres{position:absolute;left:0;right:0;bottom:26px;text-align:center;pointer-events:none;opacity:0;
   transform:translateY(14px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
 .genui.ready .gres{opacity:1;transform:none;pointer-events:auto}
-.gres .gname{font-size:26px;letter-spacing:.18em;font-weight:800;margin-bottom:10px}
+.gres .gname{font-size:26px;letter-spacing:.18em;font-weight:800;margin-bottom:6px}
 /* 発明の一句＝キャッチコピー。名前の直下、紹介文より一段大きく太く */
-.gres .gnew{max-width:min(1040px,88vw);margin:0 auto 14px}
+.gres .gnew{max-width:min(1040px,88vw);margin:0 auto 10px}
 .gres .gnew[hidden]{display:none}
 .gres .gnew b{font-size:16.5px;font-weight:700;letter-spacing:.1em;line-height:1.8;color:var(--ink)}
-.gres .gcopy{font-size:13px;letter-spacing:.06em;line-height:1.9;color:#3c434f;
-  max-width:min(880px,84vw);margin:0 auto 18px}
+.gres .gcopy{font-size:13px;letter-spacing:.06em;line-height:1.8;color:#3c434f;
+  max-width:min(880px,84vw);margin:0 auto 10px}
 /* 作られたお菓子の9軸。結果は横長の画面で見るので3列に畳む */
-.gbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 26px;
-  max-width:min(880px,84vw);margin:0 auto 18px;text-align:left}
+.gbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 26px;
+  max-width:min(880px,84vw);margin:0 auto 10px;text-align:left}
+/* 広い画面では9軸を1行に並べる。3行だとその分だけ絵が小さくなる。
+   設問の9個の丸と同じ「横一列の目盛り」になって、見た目もつながる */
+@media(min-width:960px){
+  .gbars{grid-template-columns:repeat(9,minmax(0,1fr));gap:0 16px;max-width:min(1180px,90vw)}
+  .gbars .b span{font-size:9px;letter-spacing:.06em}
+}
 .gbars .b{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:baseline}
 .gbars .b i{grid-column:1/-1;display:block;height:3px;background:var(--line);position:relative;
   border-radius:2px;overflow:hidden}
@@ -303,14 +306,20 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 .gqr[hidden]{display:none}
 .gqr canvas{width:92px;height:92px;display:block;border:1px solid var(--line);background:#fff}
 .gqr span{font-size:9px;letter-spacing:.16em;color:var(--sub)}
-.gacts{display:flex;align-items:center;gap:8px}
-.qagain,.qhome{font:inherit;font-size:11px;letter-spacing:.2em;background:none;border:none;
-  cursor:pointer;padding:11px 14px}
-.qagain{color:var(--cy)}
-.qhome{color:var(--sub)}
-.qhome:hover{color:var(--ink)}
-/* 締めの一文。作品はここで終わる。大きくすると説教くさくなるので、小さく置く */
-.gend{margin-top:16px;font-size:11px;letter-spacing:.14em;color:#9aa2ae;line-height:1.9}
+/* ボタンは全部おなじ形。片方だけ枠が付いていると、
+   押せるものと押せないものがあるように見える（本人の指摘） */
+.gacts{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px}
+.gres .gsave,.gres .bpgo,.gres .qagain,.gres .qhome{
+  font:inherit;font-size:12px;font-weight:700;letter-spacing:.12em;line-height:1;
+  border-radius:2px;border:1px solid;cursor:pointer;padding:13px 18px;display:inline-block}
+/* 主：持ち帰る／設計図を見る。従：やり直す／戻る。形は同じで、濃さだけ変える */
+.gres .gsave,.gres .bpgo{border-color:rgba(0,162,199,.55);background:rgba(0,194,232,.10);color:var(--cy)}
+.gres .gsave:hover,.gres .bpgo:hover{background:rgba(0,194,232,.18)}
+.gres .qagain,.gres .qhome{border-color:var(--line);background:rgba(255,255,255,.6);color:var(--sub)}
+.gres .qagain:hover,.gres .qhome:hover{color:var(--ink);border-color:#c9ced6}
+.gres .bpgo[hidden]{display:none}
+/* 横画面（会場のiPad・PC）はQRを出す。縦画面＝もう手の中なので、代わりに保存ボタン */
+.gres .gsave{display:none}
 /* QRの拡大。読み取れるかどうかは面積で決まる */
 .qrov{position:fixed;inset:0;z-index:14;display:none;background:rgba(255,255,255,.97);
   align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -322,19 +331,22 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 .qrin p{font-size:11.5px;line-height:2;color:var(--sub);letter-spacing:.06em;margin-bottom:22px}
 .qrclose{font:inherit;font-size:11px;letter-spacing:.24em;color:var(--cy);
   background:none;border:none;cursor:pointer;padding:10px 4px}
+/* 持ち帰る一枚。canvasのままだと iOS の長押しに「写真に追加」が出ないので、
+   必ず <img> に焼き直してから見せる */
+.cdin img{display:block;width:min(430px,86vw);max-height:74vh;height:auto;object-fit:contain;
+  margin:0 auto 16px;border:1px solid var(--line);background:#fff}
+.cdin p{font-size:12px;letter-spacing:.1em;color:var(--sub);margin-bottom:18px}
 .gmeta{position:absolute;left:44px;bottom:86px;font-size:10px;letter-spacing:.16em;color:#aab1bd;pointer-events:none}
 @media(max-width:820px){
-  .qhead{left:20px;top:24px}.qback{left:20px;bottom:28px}
+  .qhead{left:16px;right:16px;top:24px}
   .qbrand{display:none}   /* 右上のHUDと重なる。作品名はそちらに出ている */
-  /* 端で切れるより、少し縮めて全部見せる */
-  /* 6.4vwだと最長の「ひとつで足りるかつい手がのびるか」が390px幅で右端から溢れる */
-  .qtitle{font-size:min(5.5vw,25px);margin-bottom:56px;letter-spacing:0;white-space:nowrap}
-  .qtitle em{font-size:.58em;margin:0 .30em 0 .18em}
-  /* 9個の円は clamp の下限38pxのままだと 422px になり画面幅を超える */
-  .qcircles{gap:5px}
-  .qcircles button{width:30px;height:30px}
-  .qcircles button.on::after{width:9px;height:9px;margin:-4.5px 0 0 -4.5px}
-  .qaxis{width:94vw;font-size:15px;margin-top:28px}
+  /* 最長は「ひとつで足りるかつい手がのびるか」。
+     大きい字14＋小さい「か」2つ＝約15.2字ぶん。5.7vw なら 94vw に収まる */
+  .qtitle{font-size:min(5.7vw,25px);margin-bottom:52px;letter-spacing:0;white-space:nowrap}
+  .qtitle em{font-size:.58em;margin:0 .28em 0 .16em}
+  .qcircles{width:94vw}
+  .qcircles button.on::after{width:11px;height:11px;margin:-5.5px 0 0 -5.5px}
+  .qaxis{width:94vw;font-size:min(5.4vw,21px);margin-top:24px}
   /* 縦画面は下が余る。設問一式を少し下げて、上下の重心を合わせる */
   .qwrap{top:33vh}
   .qtrack{width:min(330px,84vw)}
@@ -346,17 +358,28 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   .gres .gnew b{font-size:14px;line-height:1.7}
   .gres .gcopy{font-size:11.5px;max-width:88vw;margin-bottom:14px;
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
-  /* 縦画面は下に余白が余る。結果一式を下へ寄せ、絵の場所を広く取る */
-  .gres{bottom:26px}
-  /* 375px幅に QR＋ボタン3つを1行で収める。1行に収まらないと、
-     はみ出したぶんだけ絵が押し上げられて小さくなる */
-  .gfoot{gap:9px}
-  .gacts{gap:0}
-  .qagain,.qhome{font-size:10px;letter-spacing:.04em;padding:10px 6px}
-  .gres .bpgo{font-size:10px;letter-spacing:.04em;padding:9px 9px}
-  .gqr canvas{width:58px;height:58px}
-  .gqr span{font-size:8px;letter-spacing:.04em}
-  .gend{margin-top:12px;font-size:10px;letter-spacing:.08em}
+  /* 「1つ戻る」は画面の左下に固定で出る。結果の足もとをそこまで下げると
+     文字とボタンが重なる（実機で重なっていた）。ボタン1つぶん上に置く */
+  .gres{bottom:74px}
+  /* 縦画面＝もうスマホの中にある。QRを出しても自分では読めないので出さない。
+     代わりに「スマホに残す」を押すと、持ち帰る一枚がその場に出る */
+  .gqr{display:none!important}
+  .gres .gsave{display:inline-block}
+  .gfoot{gap:8px;padding:0 8px}
+  /* 4つを2×2に置く。自然に折り返させると 3＋1 になって不揃いに見える */
+  .gacts{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:min(340px,92vw)}
+  .gres .gsave,.gres .bpgo,.gres .qagain,.gres .qhome{
+    font-size:12px;letter-spacing:.04em;padding:13px 8px;text-align:center}
+}
+/* アプリ内ブラウザ（LINE・Instagram等）は上下にバーが出て、使える高さが
+   600px前後まで縮む。そのままだと文字が場所を取りすぎて絵が半分になる */
+@media(max-width:820px) and (max-height:680px){
+  .gres{bottom:66px}
+  .gres .gname{font-size:18px;margin-bottom:4px}
+  .gres .gnew b{font-size:13px;line-height:1.6}
+  .gres .gnew{margin-bottom:8px}
+  .gres .gcopy{-webkit-line-clamp:3;margin-bottom:10px}
+  .gres .gsave,.gres .bpgo,.gres .qagain,.gres .qhome{padding:11px 8px;font-size:11.5px}
 }
 
 /* ---------- 設計図（結果のその先） ----------
@@ -464,11 +487,7 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   .bp .bpsub{margin-top:30px}
 }
 /* 結果画面から設計図へ渡すボタン。「もう一度」より先に置く＝次に進む方が主 */
-.gres .bpgo{font:inherit;font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--cy);
-  background:rgba(0,194,232,.07);border:1px solid rgba(0,162,199,.4);border-radius:2px;
-  cursor:pointer;padding:11px 20px;display:inline-block}
-.gres .bpgo[hidden]{display:none}
-.gres .bpgo:hover{background:rgba(0,194,232,.14)}
+
 
 /* ---------- 旧スライダー（未使用） ---------- */
 .gen{display:none!important;position:fixed;left:0;right:330px;bottom:88px;z-index:6;padding:16px 26px 18px;
@@ -482,6 +501,10 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
   background:var(--ink);cursor:pointer}
 .hide{display:none!important}
 body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ） */
+/* テレビ側（?tv=1）。操作するものを一切出さない。見せるのは絵だけ */
+html.tv .cta,html.tv .backlink,html.tv .homelink,html.tv .hud.br,
+html.tv .panel,html.tv .genui,html.tv .ov{display:none!important}
+html.tv,html.tv body{cursor:none}
 @media(max-width:820px){
   /* bottom:88px のままだと translateY(102%) で隠しきれず、下に帯が残る */
   .panel{width:100%;height:52%;top:auto;bottom:0;border-left:none;border-top:1px solid var(--line);
@@ -552,21 +575,30 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
       <button class="gqr" id="gQr" hidden><canvas id="qrC"></canvas><span>スマホに残す</span></button>
       <div class="gacts">
         <!-- 「面白いね」で終わらせないための出口。押した先にレシピがある -->
+        <!-- 縦画面＝すでにスマホで見ている。QRを出しても読めない。押したら画像が出る -->
+        <button class="gsave" id="gSave">スマホに残す</button>
         <button class="bpgo" id="bpGo" hidden>設計図を見る</button>
         <button class="qagain" id="qAgain">もう一度つくる</button>
         <button class="qhome" id="qHome">ホームに戻る</button>
       </div>
     </div>
-    <div class="gend" id="gEnd"></div>
   </div>
   <div class="gmeta mono" id="gMeta"></div>
 
   <!-- 設計図。結果画面の上に敷く一枚の図面 -->
+  <div class="qrov" id="cdOv">
+    <div class="qrin cdin">
+      <img id="cdImg" alt="">
+      <p id="cdMsg">長押しして「写真に追加」</p>
+      <button class="qrclose" id="cdClose">とじる</button>
+    </div>
+  </div>
+
   <div class="qrov" id="qrOv">
     <div class="qrin">
       <canvas id="qrBig"></canvas>
       <b id="qrName"></b>
-      <p>カメラを向けると、この絵が開きます。<br>長押しして「写真に追加」で保存できます。</p>
+      <p>カメラを向けると、この一枚が開きます。<br>長押しして「写真に追加」で保存できます。</p>
       <button class="qrclose" id="qrClose">とじる</button>
     </div>
   </div>
@@ -629,6 +661,7 @@ body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ）
 
 <script src="analytics.js"></script>
 <script src="qr.js"></script>
+<script src="card.js"></script>
 <script src="reveal_src.js"></script>
 <script src="picker.js"></script>
 <script src="prompt.js"></script>
@@ -972,9 +1005,25 @@ function idleCheck(){
   toFloat();
 }
 
+/* ============================================================
+   テレビ側の表示（?tv=1）
+   ------------------------------------------------------------
+   iPadをHDMIで繋ぐと、既定は「ミラーリング」＝テレビはiPadの画面の形
+   （3:4）をそのまま受け取る。16:9のテレビでは左右が黒帯になる。
+   これはCSSでは直せない。黒帯を足しているのはブラウザの外側だから。
+   直すには iPadOS 側で「拡張ディスプレイ」にする（ステージマネージャが要る）。
+   そのとき、テレビ側のウィンドウでこのURLに ?tv=1 を付けて開くと、
+   来場者用の操作（TAP TO BEGIN・ボタン・もどる）を出さない、
+   609個のパッケージが漂うだけの画面になる。人を呼ぶのはこの画面で、
+   触るのは手元のiPadという役割分担にする。
+   ============================================================ */
+const TV = /[?&]tv=1/.test(location.search);
+if(TV) document.documentElement.classList.add('tv');
+
 /* 記録。analytics.js が読めていない時も本体は動かす（記録だけ黙って諦める） */
 function LOG(n,p){
   idleAt = performance.now();   // 記録が立つ＝誰かが触っている。無操作の時計を戻す
+  if(TV) return;                // テレビ側は数えない。同じ端末なので二重になる
   try{ if(window.OKB) OKB.log(n,p); }catch(e){}
 }
 
@@ -1366,10 +1415,10 @@ function drawGenerated(dt){
   limitY = Math.max(limitY, 80);                         // ここまで来ると絵は小さいが、消しはしない
   /* 上端も抑える。0から中央に置くと、縦画面では絵が右上のHUD（作品名と時刻）に
      食い込んで、上に詰まって見える。HUDの下から絵の場所が始まるようにする */
-  const topPad = Math.min(W<820 ? 56 : 40, limitY-40);
+  const topPad = Math.min(W<820 ? 52 : 26, limitY-40);
   /* 絵と文字の比は3:2。文字を詰めた分をそのまま絵に回す。
      0.72/0.42 では絵と文字が1:1に見えていた（本人確認） */
-  const maxW=Math.min(W*(W<820?0.95:0.62), 780), maxH=(limitY-topPad)*0.95;   // 回転と揺れのぶん余らせる
+  const maxW=Math.min(W*(W<820?0.95:0.72), 900), maxH=(limitY-topPad)*0.97;   // 回転と揺れのぶん余らせる
   const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
   let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
   const cx=W/2, cy=topPad+(limitY-topPad)*0.5;
@@ -2037,35 +2086,12 @@ const QSKIN = [
   {lc:[ 42,156,112], rc:[132, 84,201]},   // ずっと同じ味 ⇔ 途中で変わる
   {lc:[ 74, 91,115], rc:[245,132, 47]},   // ひとりで ⇔ みんなで
 ];
-/* 両端の絵。
-   細い線だけで描いていたが、白い画面の上でひょろりと浮いて、
-   何の絵なのかも伝わらなかった（本人の指摘：ダサい）。作り直した。
-
-   直したのは2つ。
-   1) 塗りを主、線を従にする。塊として見えるところまで濃さを上げる。
-   2) 絵を「板（プレート）」に載せる。図鑑の標本札と同じ考え方で、
-      枠と内枠の細い罫が絵を支える。ここは作品の他の画面と同じ言語。
-
-   対になる2枚は、形そのもので反対のことを言わせている。
-   例）ずっと同じ味＝途切れない一本の帯／途中で変わる＝半分で塗りが線に変わる帯。
-   絵を見た瞬間に対比が読めれば、文字は確認のためだけになる。 */
-const QICON = [
-  // 角砂糖の塊（塗り＋線） / 岩塩の結晶（角の立った菱形）
-  ['<rect x="6" y="21" width="21" height="21" rx="3" fill="currentColor" stroke="none"/><rect x="24" y="6" width="18" height="18" rx="3"/>',
-   '<path d="M15 5l11 12-11 12L4 17z" fill="currentColor" stroke="none"/><path d="M34 18l10 11-10 11-10-11z"/><path d="M17 35l6 6-6 6-6-6z" fill="currentColor" stroke="none"/>'],
-  // 割れた稜線（塗りの山並み） / 落ちる雫と、その下の溜まり
-  ['<path d="M4 42V29l8-15 7 11 8-14 9 17 8-8v22z" fill="currentColor" stroke="none"/><path d="M4 12l8-6 7 5 8-6 9 7 8-4" stroke-width="2" opacity=".4"/>',
-   '<path d="M24 5c7 11 11 15 11 20a11 11 0 1 1-22 0c0-5 4-9 11-20z" fill="currentColor" stroke="none"/><ellipse cx="24" cy="42" rx="16" ry="3.4" stroke-width="2" opacity=".45"/>'],
-  // ひとつで満ちる大きな粒 / 小さくなりながら続いていく粒
-  ['<circle cx="24" cy="24" r="15" fill="currentColor" stroke="none"/><circle cx="24" cy="24" r="21" stroke-width="1.6" opacity=".3"/>',
-   '<path d="M6 41C15 37 30 26 43 7" stroke-width="1.6" opacity=".28"/><circle cx="7" cy="40" r="5.2" fill="currentColor" stroke="none"/><circle cx="18" cy="33" r="4.3" fill="currentColor" stroke="none"/><circle cx="28" cy="24" r="3.4" fill="currentColor" stroke="none"/><circle cx="36" cy="15" r="2.6" fill="currentColor" stroke="none"/><circle cx="43" cy="7" r="1.9" fill="currentColor" stroke="none"/>'],
-  // 途切れない一本の帯 / 半分で塗りが線に変わる帯
-  ['<rect x="4" y="18" width="40" height="12" rx="2" fill="currentColor" stroke="none"/>',
-   '<rect x="4" y="18" width="18" height="12" rx="2" fill="currentColor" stroke="none"/><rect x="27" y="18" width="17" height="12" rx="2" stroke-width="2.4"/><path d="M22.5 24h4" stroke-width="2.4"/>'],
-  // ひとつだけの塗り / 三つが重なる輪
-  ['<circle cx="24" cy="24" r="9.5" fill="currentColor" stroke="none"/>',
-   '<circle cx="15" cy="30" r="10.5" stroke-width="2.4"/><circle cx="33" cy="30" r="10.5" stroke-width="2.4"/><circle cx="24" cy="15" r="10.5" stroke-width="2.4"/>'],
-];
+/* 両端に絵を添えていたが、やめた。
+   線画でも塗りでも、この大きさの図案は「なんの絵か」が伝わる前に
+   「ダサい」が先に立つ（本人の指摘、2回）。
+   代わりに、味の両端は色だけで示す。9個の丸がその2色のあいだを
+   混ざりながら並んでいるので、両端の文字が同じ色で立てば、
+   丸の並びと文字が1つの目盛りとして読める。絵より情報が多い。 */
 const qmix=(a,b,t)=>'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';
 const qrgba=(c,a)=>'rgba('+c.join(',')+','+a+')';
 const NLV=9;                                   // 9段階。中央が「どちらでもない」
@@ -2073,17 +2099,6 @@ let qIdx=0, qDone=false, qSel=-1, qAns=[];
 
 /* 6回のタップから9軸すべてとパッケージ形態を決める。
    1問が両極なので、1タップで2つの値が同時に動く。 */
-/* 設問の見出しは1行で見せたい（折り返すと対の関係が崩れる）。
-   だが「ひとつで足りるかつい手がのびるか」は390px幅で左右にはみ出す。
-   固定のvw指定では短い設問が小さくなりすぎるので、実測して縮める。 */
-function qFitTitle(){
-  const el=$('qTitle'); if(!el) return;
-  el.style.fontSize='';
-  const max = Math.min(innerWidth*0.94, 900);
-  let fs = parseFloat(getComputedStyle(el).fontSize) || 24;
-  let guard = 0;
-  while(el.scrollWidth > max && fs > 11 && guard++ < 60){ fs -= 0.5; el.style.fontSize = fs + 'px'; }
-}
 function deriveRest(){
   const t = i => (qAns[i]===undefined?4:qAns[i])/(NLV-1);   // 0=左 … 1=右
   const R = v => Math.round(Math.max(0,Math.min(100,v)));
@@ -2129,15 +2144,11 @@ function qTicks(){
 function qRender(dir){
   const w=$('qWrap');
   const paint=()=>{
-    const q=Q[qIdx], sk=QSKIN[qIdx]||QSKIN[0], ic=QICON[qIdx]||QICON[0];
+    const q=Q[qIdx], sk=QSKIN[qIdx]||QSKIN[0];
     $('qTitle').innerHTML = q.l+'<em>か</em>'+q.r+'<em>か</em>';
-    /* 板の枠・地・絵の3色を、その味の色から作って渡す。
-       color-mix はこの端末では動くが、古いWebViewで黙って無色になる。数値で渡す */
-    const svg=(d,c)=>'<span class="ic" style="--c:'+qrgba(c,.95)+';--cb:'+qrgba(c,.4)+';--cf:'+qrgba(c,.07)+'">'
-      +'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" '
-      +'stroke-linecap="round" stroke-linejoin="round">'+d+'</svg></span>';
-    $('qL').innerHTML = svg(ic[0],sk.lc)+'<span>'+q.l+'</span>';
-    $('qR').innerHTML = svg(ic[1],sk.rc)+'<span>'+q.r+'</span>';
+    // 両端は色だけで示す。丸の並びがこの2色のあいだを埋めている
+    $('qL').style.color = qrgba(sk.lc,1); $('qL').textContent = q.l;
+    $('qR').style.color = qrgba(sk.rc,1); $('qR').textContent = q.r;
     qSel = qAns[qIdx]===undefined ? -1 : qAns[qIdx];
     $('qVal').textContent = qSel<0 ? '— / 0'+NLV : String(qSel+1).padStart(2,'0')+' / 0'+NLV;
     const box=$('qCircles'); box.textContent='';
@@ -2160,7 +2171,6 @@ function qRender(dir){
       };
       box.appendChild(b);
     }
-    qFitTitle();
     qTicks();
   };
   if(dir===undefined){ paint(); w.className='qwrap show'; return; }
@@ -2176,7 +2186,9 @@ function qNext(){
 }
 function qReset(){
   packItem=null; aiImg=null; { const g=document.getElementById('gNew'); if(g) g.hidden=true; }
-  resLogged=''; qrUrlNow=''; { const b=document.getElementById('gQr'); if(b) b.hidden=true; }
+  resLogged=''; qrUrlNow=''; cdFor=''; cdBusy=false;
+  { const b=document.getElementById('gQr'); if(b) b.hidden=true; }
+  { const i=document.getElementById('cdImg'); if(i) i.removeAttribute('src'); }
   qIdx=0; qDone=false; qSel=-1; qAns=[];
   deriveRest();                          // 未回答でも中央値で成立させる
   $('qWrap').style.display=''; $('genui').classList.remove('ready');
@@ -2283,7 +2295,6 @@ function gResult(){
   $('bpGo').hidden = !packItem;   // 設計図の中身は609枚の束にしかない
   gBars();
   qrPaint();
-  $('gEnd').textContent = endText();
   if(packItem && resLogged!==packItem.id){ resLogged=packItem.id;
     LOG('res',{id:packItem.id, name:packItem.name, a:qAns.map(v=>v===undefined?4:v)}); }
   $('gMeta').textContent = location.search.includes('aidebug') ? ('SEED '+gSeed()+'　API '+aiCalls+'回') : '';
@@ -2574,18 +2585,23 @@ let resLogged='';   // 同じ結果を毎フレーム記録しないための番
      「QRを開いた人数」まで。ダッシュボードにもそう書いてある）
    ============================================================ */
 const PUB_BASE = 'https://gjnzqqf8dq-coder.github.io/okashi-blueprint/';
-function imgUrlOf(item){
-  if(!item || !item.img) return '';
+/* QRの行き先。
+   商品画像そのもの（img/0265.jpg）を指していたが、ただの商品写真を
+   もらっても嬉しくない。名前も、発明の一句も、紹介文も入った
+   「おかしの設計図」の一枚を出す s.html を指す。 */
+function shareUrlOf(item){
+  if(!item || !item.id) return '';
   const isWeb = (location.protocol==='http:'||location.protocol==='https:')
              && location.hostname && location.hostname!=='localhost' && location.hostname!=='127.0.0.1';
+  const rel = 's.html?id=' + item.id;
   // 手元で開いている時は公開先を指す。会場のiPadでは自分自身のURLになる
-  return isWeb ? new URL('img/'+item.img, location.href).href : PUB_BASE+'img/'+item.img;
+  return isWeb ? new URL(rel, location.href).href : PUB_BASE + rel;
 }
 let qrUrlNow='';
 function qrPaint(){
   const btn=$('gQr'), cv=$('qrC');
   if(!btn||!cv) return;
-  const url = imgUrlOf(packItem);
+  const url = shareUrlOf(packItem);
   if(!url || !window.QR){ btn.hidden=true; qrUrlNow=''; return; }
   if(url===qrUrlNow){ btn.hidden=false; return; }
   try{
@@ -2606,21 +2622,50 @@ function qrOpen(){
 function qrClose(){ $('qrOv').classList.remove('on'); }
 function qrIsOpen(){ return $('qrOv').classList.contains('on'); }
 
-/* 締めの一文。作品はここで終わる。
-   方向性を5つ用意して ?end=1..5 で切り替えられるようにしてある。
-   1 バトン（既定）／2 感謝／3 半世紀（導入03の問いを回収）／4 実在／5 交代 */
-const ENDS = [
-  'この一枚は、あなたが引いた。次の一枚は、次の人が引く。',
-  '発案、ありがとうございました。',
-  '半世紀後の棚に、これは残っているだろうか。',
-  'これはまだ、世界のどこにも売っていない。',
-  '開発は、ここから次の人へ。'
-];
-function endText(){
-  const m=/[?&]end=(\d)/.exec(location.search);
-  const i=m ? Math.max(1,Math.min(ENDS.length,parseInt(m[1],10)))-1 : 0;
-  return ENDS[i];
+/* ============================================================
+   持ち帰る一枚
+   ------------------------------------------------------------
+   縦画面で見ている人は、もうスマホを手に持っている。
+   そこにQRを出しても自分では読めない。押したらその場に画像を出す。
+   canvas のままだと iOS の長押しに「写真に追加」が出ないので、
+   必ず <img> へ焼き直してから見せる。
+   ============================================================ */
+let cdBusy=false, cdFor='';
+function cardOptsOf(it){
+  const p = splitNew(it.text) || {nw:'', body:it.text};
+  return {
+    id: it.id, name: it.name, lead: p.nw || '', body: p.body || it.text,
+    imgUrl: 'img/' + it.img,
+    axes: AXES.map((a,k)=>({ja:AXJA[k], v:G[a]})),
+    kind: it.k || '', struct: it.s || ''
+  };
 }
+function cardOpen(){
+  const it = packItem; if(!it) return;
+  LOG('qr',{id:it.id});          // 持ち帰ろうとした、として同じ器で数える
+  const ov=$('cdOv'), im=$('cdImg'), msg=$('cdMsg');
+  ov.classList.add('on');
+  if(cdFor===it.id && im.src){ return; }        // 同じ一枚なら作り直さない
+  if(!window.OKB_CARD){                          // 部品が無い時は素直にページへ送る
+    ov.classList.remove('on');
+    const u=shareUrlOf(it); if(u) location.href=u;
+    return;
+  }
+  if(cdBusy) return;
+  cdBusy=true; im.removeAttribute('src'); msg.textContent='つくっています…';
+  OKB_CARD.render(cardOptsOf(it)).then(cv=>{
+    im.src = cv.toDataURL('image/jpeg', 0.92);
+    msg.textContent = '長押しして「写真に追加」';
+    cdFor = it.id; cdBusy=false;
+  }).catch(e=>{
+    console.warn('card', e);
+    cdBusy=false; ov.classList.remove('on');
+    const u=shareUrlOf(it); if(u) location.href=u;
+  });
+}
+function cardClose(){ $('cdOv').classList.remove('on'); }
+function cardIsOpen(){ return $('cdOv').classList.contains('on'); }
+
 function describe(){
   const dom=['sweet','salt','spicy','sour','umami'].reduce((a,b)=>G[b]>G[a]?b:a);
   const tex=['hard','crisp','creamy'].reduce((a,b)=>G[b]>G[a]?b:a);
@@ -2718,7 +2763,7 @@ function onTap(mx,my){
   }
   startConcept();
 }
-C.addEventListener('pointerdown',e=>onTap(e.clientX,e.clientY));
+if(!TV) C.addEventListener('pointerdown',e=>onTap(e.clientX,e.clientY));
 $('pClose').onclick=e=>{e.stopPropagation();closeDetail();};
 $('btnGen').onclick=e=>{e.stopPropagation();startConcept();};
 /* 待機画面まで一気に戻す。もどるの終点 */
@@ -2737,6 +2782,7 @@ function toFloat(){
 $('btnBack').onclick=e=>{
   e.stopPropagation();
   LOG('back',{from:navWhere()});
+  if(cardIsOpen()){ cardClose(); return; }   // 持ち帰る一枚が手前ならまずそれを閉じる
   if(qrIsOpen()){ qrClose(); return; }   // QRが手前ならまずそれを閉じる
   if(bpIsOpen()){ bpClose(); return; }   // 設計図が手前にあるときは、そこから戻す
   if(MODE==='DETAIL'){ closeDetail(); return; }
@@ -2787,8 +2833,11 @@ $('bpGo').onclick=()=>bpOpen();
 $('gQr').onclick=()=>qrOpen();
 $('qrClose').onclick=()=>qrClose();
 $('qrOv').onclick=e=>{ if(e.target===$('qrOv')) qrClose(); };   // 外を触っても閉じる
+$('gSave').onclick=()=>cardOpen();
+$('cdClose').onclick=()=>cardClose();
+$('cdOv').onclick=e=>{ if(e.target===$('cdOv')) cardClose(); };
 /* 結果のホームボタン。押した＝最後まで見届けた、として記録する */
-$('qHome').onclick=()=>{ LOG('end',{id:packItem?packItem.id:''}); qrClose(); bpClose(); toFloat(); };
+$('qHome').onclick=()=>{ LOG('end',{id:packItem?packItem.id:''}); cardClose(); qrClose(); bpClose(); toFloat(); };
 $('bpClose').onclick=()=>bpClose();
 $('qBack').onclick=()=>$('btnBack').click();
 /* ホームに戻る＝待機画面（お菓子が漂う画面）まで一気に戻す。

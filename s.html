@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>おかしの設計図 / OKASHI BLUEPRINT</title>
+<style>
+  html,body{margin:0;padding:0;background:#fff;color:#0d1117;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
+    -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+  main{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:28px 0 40px;box-sizing:border-box}
+  #card{display:block;width:min(560px,92vw);height:auto}
+  #tip{margin:18px 0 0;font-size:12.5px;letter-spacing:.08em;color:#7b8595}
+  #msg{font-size:13px;letter-spacing:.14em;color:#7b8595;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace}
+</style>
+</head>
+<body>
+<main id="app"><p id="msg">読み込み中</p></main>
+<script src="card.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ---- 本体アプリと同じ軸。data.js を読まずに済むよう写してある ---- */
+  var AXJA = ['あまい','しょっぱい','からい','すっぱい','うまい','ザクザク','パリパリ','クリーミー','ひと粒'];
+  var NLV  = 9;
+
+  /* index.html の deriveRest() をそのまま写す。
+     来場者の5つの答えから、9つの味の設計値を引き直している */
+  function deriveRest(ans){
+    var a = ans || [];
+    var t = function(i){ return (a[i]===undefined ? 4 : a[i]) / (NLV-1); };
+    var R = function(v){ return Math.round(Math.max(0, Math.min(100, v))); };
+    var t0=t(0), t1=t(1), t2=t(2), t3=t(3), t4=t(4);
+    var G = {};
+    G.sweet = R((1-t0)*88 + 8);
+    G.salt  = R(t0*88 + 8);
+    G.sour  = R(t3*70 + 6);
+    G.spicy = R(t3*t0*80);
+    G.umami = R(t2*80 + 6);
+    var hard=(1-t1)*92+6, creamy=t1*92+6, crisp=(1-Math.abs(t1-0.5)*2)*70+10;
+    var sum=hard+creamy+crisp;
+    G.hard=R(hard/sum*100); G.creamy=R(creamy/sum*100); G.crisp=100-G.hard-G.creamy;
+    G.grain = R(94 - t2*86);
+    return [G.sweet,G.salt,G.spicy,G.sour,G.umami,G.hard,G.crisp,G.creamy,G.grain]
+      .map(function(v,i){ return {ja:AXJA[i], v:v}; });
+  }
+
+  /* index.html の splitNew() と同じ挙動。
+     紹介文は「<発明>、<味>の<種類>です。……」で始まる。
+     最初の句点までを取り、その中の最後の読点で切る。形が違えば全文を本文へ */
+  function splitNew(t){
+    var s = String(t||''); var i = s.indexOf('。');
+    if(i<0) return null;
+    var first = s.slice(0,i), rest = s.slice(i+1);
+    var c = first.lastIndexOf('、');
+    if(c<1 || first.length-c<3) return null;
+    return { nw: first.slice(0,c)+'。', body: first.slice(c+1)+'。'+rest };
+  }
+
+  function fail(t){
+    document.getElementById('app').innerHTML =
+      '<p id="msg">'+(t||'見つかりませんでした')+'</p>';
+  }
+
+  var id = (function(){
+    var m = /[?&]id=([^&#]*)/.exec(location.search);
+    return m ? decodeURIComponent(m[1]) : '';
+  })();
+
+  if(!/^\d{4}$/.test(id)){ fail(); return; }
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET','okashi612.json',true);
+  xhr.onload = function(){
+    var data;
+    try{ data = JSON.parse(xhr.responseText); }catch(e){ fail(); return; }
+    var items = (data && data.items) || [];
+    var it = null;
+    for(var i=0;i<items.length;i++){ if(String(items[i].id)===id){ it=items[i]; break; } }
+    if(!it){ fail(); return; }
+
+    var p = splitNew(it.text);
+    window.OKB_CARD.render({
+      id:     it.id,
+      name:   it.name || '',
+      lead:   p ? p.nw : '',
+      body:   p ? p.body : String(it.text||''),
+      imgUrl: 'img/' + it.img,
+      axes:   deriveRest(it.a),
+      kind:   it.k || '',
+      struct: it.s || ''
+    }).then(function(cv){
+      var url = cv.toDataURL('image/jpeg', 0.92);
+      var app = document.getElementById('app');
+      app.innerHTML = '';
+      /* canvas ではなく img で出す。iPhone は img の長押しでだけ
+         「写真に追加」が出る。canvas では出ない */
+      var im = new Image();
+      im.id = 'card';
+      im.alt = (it.name||'') + '｜おかしの設計図';
+      im.src = url;
+      var tip = document.createElement('p');
+      tip.id = 'tip';
+      tip.textContent = '長押しして「写真に追加」';
+      app.appendChild(im);
+      app.appendChild(tip);
+      document.title = (it.name||'') + '／おかしの設計図';
+    })['catch'](function(){ fail(); });
+  };
+  xhr.onerror = function(){ fail(); };
+  xhr.send();
+})();
+</script>
+</body>
+</html>
