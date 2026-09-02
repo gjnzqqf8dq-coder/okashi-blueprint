@@ -314,11 +314,22 @@
         if (ls <= 23 && bs <= 17) break;
       }
 
-      /* ---------- 写真の帯 ---------- */
+      /* ---------- 写真の帯 ----------
+         文が短ければ写真を伸ばし、長ければ写真を縮める。
+         余白は下にためず、必ず写真に返す（白い穴を作らない） */
       var photoTop = 156;
       var textGap = 34;
-      var photoBottom = Math.min(724, (rule2Y - 30) - textGap - textH);
-      if (photoBottom < photoTop + 340) photoBottom = photoTop + 340;
+      var hasImg = !!(img && img.naturalWidth);
+      var slack = (rule2Y - 30) - textGap - textH - photoTop;
+      var bandH;
+      if (hasImg) {
+        bandH = Math.min(644, slack);
+        if (bandH < 340) bandH = 340;
+      } else {
+        /* 写真が来なかったとき。帯を潰し、文をおおよそ天地の中央に置く */
+        bandH = Math.max(40, Math.min(300, slack * 0.42));
+      }
+      var photoBottom = photoTop + bandH;
 
       var box = drawPackage(ctx, img, M, photoTop, CW, photoBottom - photoTop);
       cornerTicks(ctx, box);
