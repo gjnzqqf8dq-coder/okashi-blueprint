@@ -786,7 +786,8 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
 
 <script src="analytics.js"></script>
 <script src="qr.js"></script>
-<script src="card.js"></script>
+<!-- card.js はもう読まない。持ち帰る一枚は card/xxxx.jpg として焼いてあるので、
+     この画面で組み立てる必要がなくなった（s.html だけが使う） -->
 <script src="reveal_src.js"></script>
 <script src="picker.js"></script>
 <script src="prompt.js"></script>
@@ -2408,7 +2409,7 @@ function qNext(){
 }
 function qReset(){
   packItem=null; aiImg=null; { const g=document.getElementById('gNew'); if(g) g.hidden=true; }
-  resLogged=''; qrUrlNow=''; cdFor=''; cdBusy=false; cdBlob=null; cdFile=null; cdUrl='';
+  resLogged=''; qrUrlNow=''; cdFor=''; cdBlob=null; cdFile=null; cdUrl='';
   { const b=document.getElementById('gQr'); if(b) b.hidden=true; }
   { const i=document.getElementById('cdImg'); if(i) i.removeAttribute('src'); }
   qIdx=0; qDone=false; qSel=-1; qAns=[];
@@ -2517,7 +2518,7 @@ function gResult(){
   $('bpGo').hidden = !packItem;   // 設計図の中身は609枚の束にしかない
   gBars();
   qrPaint();
-  if(packItem) cardPrepare(packItem);   // 押される前に作っておく
+  if(packItem) cardPrepare(packItem);   // 押される前に取っておく
   if(packItem && resLogged!==packItem.id){ resLogged=packItem.id;
     LOG('res',{id:packItem.id, name:packItem.name, a:qAns.map(v=>v===undefined?4:v)}); }
   $('gMeta').textContent = location.search.includes('aidebug') ? ('SEED '+gSeed()+'　API '+aiCalls+'回') : '';
@@ -2808,15 +2809,20 @@ let resLogged='';   // 同じ結果を毎フレーム記録しないための番
      「QRを開いた人数」まで。ダッシュボードにもそう書いてある）
    ============================================================ */
 const PUB_BASE = 'https://gjnzqqf8dq-coder.github.io/okashi-blueprint/';
-/* QRの行き先。
-   商品画像そのもの（img/0265.jpg）を指していたが、ただの商品写真を
-   もらっても嬉しくない。名前も、発明の一句も、紹介文も入った
-   「おかしの設計図」の一枚を出す s.html を指す。 */
-function shareUrlOf(item){
+/* 持ち帰る一枚の在りか。
+   ここは何度も直した。経緯を残す ──
+   ① 商品写真そのもの(img/xxxx.jpg)を渡していた → ただの写真では嬉しくない
+   ② その場で組んだ画像を data URL で見せ、共有シートやダウンロードで保存
+      → LINEの中のブラウザでは長押しに「写真に追加」が出ず、共有シートも
+        ダウンロードも効かず、押しても何も起きなかった（実機で確認）
+   ③ 609枚ぶんを先に焼いて、ただのJPEGとして置いた（card/xxxx.jpg）。
+      本物の画像ファイルなら、どのブラウザでも開けて長押しで保存できる。
+      仕掛けが無いぶん、壊れようがない。 */
+function cardUrlOf(item){
   if(!item || !item.id) return '';
   const isWeb = (location.protocol==='http:'||location.protocol==='https:')
              && location.hostname && location.hostname!=='localhost' && location.hostname!=='127.0.0.1';
-  const rel = 's.html?id=' + item.id;
+  const rel = 'card/' + item.id + '.jpg';
   // 手元で開いている時は公開先を指す。会場のiPadでは自分自身のURLになる
   return isWeb ? new URL(rel, location.href).href : PUB_BASE + rel;
 }
@@ -2824,7 +2830,7 @@ let qrUrlNow='';
 function qrPaint(){
   const btn=$('gQr'), cv=$('qrC');
   if(!btn||!cv) return;
-  const url = shareUrlOf(packItem);
+  const url = cardUrlOf(packItem);
   if(!url || !window.QR){ btn.hidden=true; qrUrlNow=''; return; }
   if(url===qrUrlNow){ btn.hidden=false; return; }
   try{
@@ -2853,110 +2859,57 @@ function qrIsOpen(){ return $('qrOv').classList.contains('on'); }
    canvas のままだと iOS の長押しに「写真に追加」が出ないので、
    必ず <img> へ焼き直してから見せる。
    ============================================================ */
-let cdBusy=false, cdFor='', cdBlob=null, cdFile=null, cdUrl='';
-/* 共有シートは「押した直後」でないと開かない端末がある。
-   結果が出た時点で裏で作っておき、押されたら渡すだけにする。
-   会場のiPad（横幅820超）はQRを使うので作らない。無駄に重くしない */
-function cardOptsOf(it){
-  const p = splitNew(it.text) || {nw:'', body:it.text};
-  return {
-    id: it.id, name: it.name, lead: p.nw || '', body: p.body || it.text,
-    imgUrl: 'img/' + it.img,
-    axes: AXES.map((a,k)=>({ja:AXJA[k], v:G[a]})),
-    kind: it.k || '', struct: it.s || ''
-  };
-}
+let cdFor='', cdBlob=null, cdFile=null, cdUrl='';
+/* 共有シートが使える端末（Safariなど）では、そこから「画像を保存」に行けると速い。
+   押した直後でないと開かない端末があるので、画像は先に取っておく。
+   使えない端末では、その画像だけのページへ移る。どちらにしても必ず何かが起きる。 */
 function cardPrepare(it){
-  if(!it || !window.OKB_CARD || innerWidth>820) return;
-  if(cdFor===it.id || cdBusy) return;
-  cdBusy=true; cdBlob=null; cdFile=null; cdUrl='';
-  OKB_CARD.render(cardOptsOf(it)).then(cv=>{
-    cdUrl = cv.toDataURL('image/jpeg', 0.92);
-    cv.toBlob(function(b){
-      cdBlob=b;
-      try{ cdFile=new File([b], 'okashi-'+it.id+'.jpg', {type:'image/jpeg'}); }catch(e){ cdFile=null; }
-      cdFor=it.id; cdBusy=false;
-      if(cardIsOpen()) cardShow();
-    }, 'image/jpeg', 0.92);
-  }).catch(e=>{ console.warn('card',e); cdBusy=false; });
+  if(!it) return;
+  const u = cardUrlOf(it);
+  if(!u || cdFor===it.id) return;
+  cdFor=it.id; cdUrl=u; cdBlob=null; cdFile=null;
+  if(innerWidth>820) return;                 // 会場のiPadはQRを使う。取りに行かない
+  fetch(u).then(r=> r.ok ? r.blob() : null).then(b=>{
+    if(!b) return;
+    cdBlob=b;
+    try{ cdFile=new File([b], 'おかしの設計図_'+it.id+'.jpg', {type:'image/jpeg'}); }catch(e){ cdFile=null; }
+    if(cardIsOpen()) cardShow();
+  }).catch(()=>{});
 }
 function canShareCard(){
-  try{ return !!(cdFile && navigator.canShare && navigator.canShare({files:[cdFile]})); }catch(e){ return false; }
+  try{ return !!(cdFile && navigator.share && navigator.canShare && navigator.canShare({files:[cdFile]})); }
+  catch(e){ return false; }
 }
 function cardShow(){
   const im=$('cdImg'), msg=$('cdMsg'), btn=$('cdSave');
   if(!cdUrl){ msg.textContent='つくっています…'; btn.disabled=true; return; }
-  im.src=cdUrl;
-  /* 絵は出来ているのに Blob がまだ、という短い隙がある。
-     そこで押されると何も起きない。出来るまでは押させない */
-  btn.disabled = !cdBlob;
-  msg.textContent = !cdBlob ? 'あと少しで押せます…'
-    : (canShareCard() ? '押すと共有メニューが開きます。「画像を保存」で写真に入ります。'
-                      : '押すと画像が保存されます。');
-}
-/* 押しても何も起きない、と実機で言われた。
-   原因になりうるところを全部潰す：
-   ・まだ絵が出来ていないのに押された → 何も返さず黙っていた
-   ・共有シートが使えない端末 → catch で握り潰していた
-   ・共有シートを自分で閉じた（AbortError）→ 失敗と区別していなかった
-   どの道でも、必ず画面に結果を出す。黙って終わらない。 */
-function cardMsg(t){ const m=$('cdMsg'); if(m) m.textContent=t; }
-function cardDownload(){
-  if(!cdBlob) return false;
-  try{
-    const url=URL.createObjectURL(cdBlob);
-    const a=document.createElement('a');
-    a.href=url; a.download='okashi-'+(packItem?packItem.id:'card')+'.jpg';
-    a.rel='noopener'; a.style.display='none';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 10000);
-    cardMsg('保存しました。「写真」か「ファイル」に入っています。');
-    return true;
-  }catch(e){ return false; }
+  if(im.getAttribute('src')!==cdUrl) im.src=cdUrl;
+  btn.disabled=false;
+  msg.textContent = canShareCard()
+    ? '押すと共有メニューが開きます。「画像を保存」で写真に入ります。'
+    : '押すと画像だけの画面になります。長押しして「写真に追加」。';
 }
 function cardSave(){
-  const it=packItem;
-  if(!cdBlob){                       // まだ出来ていない。作りながらそう言う
-    cardMsg('まだ作っています。数秒待ってもう一度押してください。');
-    if(it){ cdFor=''; cardPrepare(it); }
+  if(!cdUrl) return;
+  if(canShareCard()){
+    $('cdMsg').textContent='「画像を保存」を選んでください。';
+    navigator.share({files:[cdFile]})
+      .then(()=>{ $('cdMsg').textContent='保存できました。'; })
+      .catch(err=>{
+        if(err && err.name==='AbortError'){ cardShow(); return; }
+        location.href = cdUrl;                    // 共有が失敗したら画像を開く
+      });
     return;
   }
-  // 1) 共有シート。iPhoneはここから「画像を保存」で写真に入る
-  if(cdFile && navigator.share){
-    let allowed = true;
-    try{ if(navigator.canShare) allowed = navigator.canShare({files:[cdFile]}); }
-    catch(e){ allowed = false; }
-    if(allowed){
-      cardMsg('「画像を保存」を選んでください。');
-      try{
-        navigator.share({files:[cdFile]}).then(()=>{
-          cardMsg('保存できました。');
-        }).catch(err=>{
-          if(err && err.name==='AbortError'){ cardMsg('やめました。もう一度押せます。'); return; }
-          if(!cardDownload()) cardMsg('保存できませんでした。画像を長押ししてみてください。');
-        });
-        return;
-      }catch(e){ /* 下のダウンロードへ落ちる */ }
-    }
-  }
-  // 2) ダウンロード
-  if(cardDownload()) return;
-  // 3) 最後の手段。画像だけの画面を開く。そこなら長押しが効く
-  try{
-    const w=window.open(URL.createObjectURL(cdBlob),'_blank');
-    if(w) cardMsg('開いた画像を長押しして「写真に追加」を選んでください。');
-    else  cardMsg('保存できませんでした。画像を長押ししてみてください。');
-  }catch(e){ cardMsg('保存できませんでした。画像を長押ししてみてください。'); }
+  /* 共有シートが無い／使えない端末。画像そのものを開く。
+     ただのJPEGなので、どのブラウザでも長押しで「写真に追加」が出る */
+  location.href = cdUrl;
 }
 function cardOpen(){
   const it = packItem; if(!it) return;
   LOG('qr',{id:it.id});          // 持ち帰ろうとした、として同じ器で数える
-  if(!window.OKB_CARD){          // 部品が無い時は素直にページへ送る
-    const u=shareUrlOf(it); if(u) location.href=u;
-    return;
-  }
-  $('cdOv').classList.add('on');
   cardPrepare(it);
+  $('cdOv').classList.add('on');
   cardShow();
 }
 function cardClose(){ $('cdOv').classList.remove('on'); }
