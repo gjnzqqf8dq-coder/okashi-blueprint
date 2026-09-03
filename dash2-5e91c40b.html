@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>おかしの設計図 ／ 来場者の動き</title>
+<style>
+:root{
+  --ink:#0d1117; --sub:#5c6675; --mute:#98a1ae;
+  --line:#e3e7ec; --sur:#ffffff; --sur2:#f6f7f8; --bg:#fbfdfe;
+  --a:#00849e;            /* 主系列（配布用） */
+  --b:#c2410c;            /* 副系列（会場用） */
+  --drop:#d8dde3;         /* 離脱ぶんの受け皿 */
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#eef2f6; --sub:#9aa5b3; --mute:#6d7784;
+  --line:#252b33; --sur:#12161b; --sur2:#171c22; --bg:#0d1117;
+  --a:#35b7d4; --b:#f2793f; --drop:#252b33;
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font:400 14px/1.65 "Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  -webkit-font-smoothing:antialiased;padding:22px 20px 80px}
+.mono{font-family:"SF Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:19px;letter-spacing:.02em}
+h2{font-size:13px;letter-spacing:.14em;color:var(--sub);margin:34px 0 12px;font-weight:700}
+.sub{color:var(--sub);font-size:12.5px;margin-top:3px}
+
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--sur)}
+.seg button{appearance:none;border:0;background:transparent;color:var(--sub);
+  font:inherit;font-size:12.5px;padding:7px 13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--a);color:#fff}
+.seg button+button{border-left:1px solid var(--line)}
+.rl{margin-left:auto;color:var(--mute);font-size:12px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:10px;margin-top:14px}
+.kpi{background:var(--sur);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+.kpi .k{font-size:11.5px;letter-spacing:.06em;color:var(--sub)}
+.kpi .v{font-size:27px;font-weight:700;letter-spacing:-.01em;margin-top:3px}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--sub);margin-left:2px}
+.kpi .n{font-size:11.5px;color:var(--mute);margin-top:1px}
+
+.card{background:var(--sur);border:1px solid var(--line);border-radius:12px;padding:16px 16px 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+
+/* ファネル：1本のトラックの上に到達ぶんを乗せる。落ちたぶんは受け皿の色で残る */
+.fn{display:grid;grid-template-columns:132px 1fr 74px 64px;gap:9px;align-items:center;
+  padding:5px 0;font-size:12.5px}
+.fn .lb{color:var(--sub)}
+.fn .tr{position:relative;height:15px;background:var(--drop);border-radius:4px;overflow:hidden}
+.fn .tr i{display:block;height:100%;background:var(--a);border-radius:4px;
+  transition:width .5s cubic-bezier(.2,.7,.3,1)}
+.fn .vv{text-align:right;font-weight:700}
+.fn .dd{text-align:right;color:var(--b);font-size:12px}
+.fn:hover .lb{color:var(--ink)}
+
+/* 縦棒（時間帯） */
+.hrs{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:6px}
+.hrs .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.hrs .c i{display:block;width:100%;background:var(--a);border-radius:4px 4px 0 0;min-height:2px}
+.hrs .c b{font:400 10px/1 var(--m);color:var(--mute);margin-top:5px;font-weight:400}
+.hrs .c.on i{background:var(--b)}
+
+/* 横棒（離脱・端末） */
+.rows .r{display:grid;grid-template-columns:1fr 84px 46px;gap:9px;align-items:center;padding:4px 0;font-size:12.5px}
+.rows .t{position:relative;height:11px;background:var(--sur2);border-radius:4px;overflow:hidden}
+.rows .t i{display:block;height:100%;background:var(--a);border-radius:4px}
+.rows .n{text-align:right;font-weight:700}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:var(--sub);font-weight:700;font-size:11.5px;letter-spacing:.06em;
+  border-bottom:1px solid var(--line);padding:7px 8px}
+td{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top}
+tr.s{cursor:pointer}
+tr.s:hover td{background:var(--sur2)}
+td .tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;
+  border:1px solid var(--line);color:var(--sub)}
+td .ok{color:var(--a);border-color:currentColor}
+td .no{color:var(--b);border-color:currentColor}
+.tl{background:var(--sur2)}
+.tl ol{margin:0;padding:4px 0 4px 18px}
+.tl li{padding:1px 0;color:var(--sub)}
+.tl li b{color:var(--ink);font-weight:700}
+.scroll{overflow-x:auto}
+footer{margin-top:44px;color:var(--mute);font-size:11.5px;line-height:1.9}
+.warn{background:#fff5ed;border:1px solid #f3d3bb;color:#8a3d10;border-radius:10px;
+  padding:11px 13px;font-size:12.5px;margin-top:14px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .warn{background:#241610;border-color:#4a2a17;color:#f0b48c}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>おかしの設計図 ／ 来場者の動き</h1>
+  <div class="sub" id="src">読み込み中…</div>
+
+  <div class="bar">
+    <div class="seg" id="fDate">
+      <button data-v="today" aria-pressed="true">今日</button>
+      <button data-v="all" aria-pressed="false">全期間</button>
+    </div>
+    <div class="seg" id="fMode">
+      <button data-v="all"   aria-pressed="true">両方</button>
+      <button data-v="phone" aria-pressed="false">配布用</button>
+      <button data-v="stand" aria-pressed="false">会場用</button>
+    </div>
+    <span class="rl" id="upd"></span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <div id="warn"></div>
+
+  <h2>どこまで進んで、どこで抜けたか</h2>
+  <div class="card"><div id="funnel"></div></div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div>
+      <h2 style="margin-top:0">時間帯</h2>
+      <div class="card"><div class="hrs" id="hours"></div>
+        <div class="sub" id="hoursNote" style="margin-top:8px"></div></div>
+    </div>
+    <div>
+      <h2 style="margin-top:0">最後に見ていた画面（抜けた場所）</h2>
+      <div class="card"><div class="rows" id="exits"></div></div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div>
+      <h2 style="margin-top:0">端末</h2>
+      <div class="card"><div class="rows" id="kinds"></div></div>
+    </div>
+    <div>
+      <h2 style="margin-top:0">答えの偏り</h2>
+      <div class="card"><div id="answers"></div></div>
+    </div>
+  </div>
+
+  <h2>ひとつずつの記録（押すと中が開きます）</h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th>開始</th><th>端末</th><th>どちら</th><th>到達</th><th>滞在</th><th>保存</th><th>できごと</th></tr></thead>
+      <tbody id="sess"></tbody>
+    </table>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+/* ============================================================
+   データの出どころは2つ。
+   ・OKB_ENDPOINT（Apps Script）… 配布したスマホから届いたぶん
+   ・この端末の localStorage      … 会場のiPadで直接見るとき
+   両方あれば両方まとめて見る。
+   ============================================================ */
+var ENDPOINT = '', READ_KEY = 'okb-2026';
+try{ document.write('<scr'+'ipt src="cfg.js"><\/scr'+'ipt>'); }catch(e){}
+</script>
+<script>
+(function(){
+  ENDPOINT = window.OKB_ENDPOINT || '';
+  var RAW = [], state = {date:'today', mode:'all'};
+  var $ = function(id){ return document.getElementById(id); };
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+
+  /* できごとの日本語名。ファネルの並び順もここで決まる */
+  var STEP = [
+    ['boot',      '開いた'],
+    ['make',      '「つくる」を押した'],
+    ['page0',     'はじめの話 1/3'],
+    ['page1',     'はじめの話 2/3'],
+    ['page2',     'はじめの話 3/3'],
+    ['ask0',      '質問1に答えた'],
+    ['ask1',      '質問2に答えた'],
+    ['ask2',      '質問3に答えた'],
+    ['ask3',      '質問4に答えた'],
+    ['ask4',      '質問5に答えた'],
+    ['res',       'お菓子が出た'],
+    ['deep',      '設計図/QRを見た'],
+    ['save_open', '「スマホに残す」'],
+    ['save_do',   '写真に保存した'],
+    ['end',       '最後まで見届けた']
+  ];
+  var JA = {boot:'開いた', wake:'起こした', make:'つくるを押した', start:'はじめた',
+    page:'はじめの話', ask:'質問に答えた', res:'お菓子が出た', recipe:'設計図を見た',
+    qr:'QRを見た', save_open:'スマホに残すを押した', save_do:'写真に保存した',
+    shelf:'棚のお菓子を見た', end:'最後まで見届けた', again:'もう一度', home:'ホームへ',
+    back:'ひとつ戻る', idle:'放置で戻された'};
+
+  /* ---------- 取得 ---------- */
+  function jsonp(url, cb){
+    var name = 'okbcb' + Math.floor(Math.random()*1e9);
+    var done = false;
+    window[name] = function(d){ done = true; cleanup(); cb(null, d); };
+    var s = document.createElement('script');
+    s.src = url + (url.indexOf('?')<0?'?':'&') + 'cb=' + name;
+    s.onerror = function(){ if(!done){ cleanup(); cb(new Error('通信できません')); } };
+    document.head.appendChild(s);
+    var to = setTimeout(function(){ if(!done){ cleanup(); cb(new Error('応答がありません')); } }, 20000);
+    function cleanup(){ clearTimeout(to); try{ delete window[name]; }catch(e){ window[name]=undefined; }
+      if(s.parentNode) s.parentNode.removeChild(s); }
+  }
+  function fromLocal(){
+    var out = [];
+    try{
+      var a = JSON.parse(localStorage.getItem('okb.log')||'[]');
+      var vid = localStorage.getItem('okb.vid') || 'この端末';
+      var prev = 0, psid = null;
+      a.forEach(function(v){
+        if(v.s !== psid){ prev = 0; psid = v.s; }   /* 体験の1件目に前の体験の待ち時間を足さない */
+        var dt = new Date(v.t);
+        var x = {}; for(var k in v) if(['t','s','e'].indexOf(k)<0) x[k]=v[k];
+        out.push({ts:dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+' '+
+                     pad(dt.getHours())+':'+pad(dt.getMinutes())+':'+pad(dt.getSeconds()),
+                  date:dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate()),
+                  hh:dt.getHours(), vid:vid, sid:v.s|0, mode:'stand', kind:'ipad',
+                  ev:v.e, d: prev? (v.t-prev):0, x:Object.keys(x).length?JSON.stringify(x):'',
+                  _ms:v.t, _local:true});
+        prev = v.t;
+      });
+    }catch(e){}
+    return out;
+  }
+  function load(){
+    var local = fromLocal();
+    if(!ENDPOINT){
+      RAW = local;
+      $('src').textContent = local.length
+        ? 'この端末の記録のみ（' + local.length + '件）。配布用のぶんは cfg.js に送信先を入れると出ます。'
+        : 'まだ記録がありません。';
+      render(); return;
+    }
+    $('src').textContent = '受信中…';
+    jsonp(ENDPOINT + '?k=' + encodeURIComponent(READ_KEY) + '&n=20000', function(err, d){
+      if(err || !d || d.error){
+        RAW = local;
+        $('src').textContent = 'サーバから読めませんでした（' + esc(err? err.message : d.error) +
+                               '）。この端末の記録だけ表示しています。';
+      }else{
+        var rows = (d.rows||[]).map(function(r){ r._ms = Date.parse(r.ts.replace(/-/g,'/')); return r; });
+        RAW = rows.concat(local.filter(function(l){ return !rows.length; }));
+        $('src').textContent = '配布用＋会場用の記録 ' + RAW.length + ' 件';
+      }
+      render();
+    });
+  }
+
+  /* ---------- 絞り込み ---------- */
+  function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function rows(){
+    var t = today();
+    return RAW.filter(function(r){
+      if(state.date==='today' && r.date !== t) return false;
+      if(state.mode!=='all' && r.mode !== state.mode) return false;
+      return true;
+    });
+  }
+  /* 体験のまとまり。端末番号＋体験番号で1つ */
+  function sessions(rs){
+    var m = {};
+    rs.forEach(function(r){
+      var k = r.vid + '#' + r.sid;
+      (m[k] = m[k] || {key:k, vid:r.vid, sid:r.sid, mode:r.mode, kind:r.kind, ev:[]}).ev.push(r);
+    });
+    return Object.keys(m).map(function(k){
+      var s = m[k];
+      s.ev.sort(function(a,b){ return a._ms - b._ms; });
+      s.t0 = s.ev[0]._ms; s.t1 = s.ev[s.ev.length-1]._ms;
+      s.dur = Math.max(0, Math.round((s.t1 - s.t0)/1000));
+      s.has = {};
+      s.ev.forEach(function(e){
+        s.has[e.ev] = true;
+        if(e.ev==='page' || e.ev==='ask'){
+          var x = {}; try{ x = JSON.parse(e.x||'{}'); }catch(_){}
+          if(e.ev==='page' && x.p!=null) s.has['page'+x.p] = true;
+          if(e.ev==='ask'  && x.q!=null) s.has['ask'+x.q]  = true;
+        }
+        if(e.ev==='recipe' || e.ev==='qr') s.has['deep'] = true;
+      });
+      var last = s.ev[s.ev.length-1];
+      s.exit = last.ev; s.exitJA = JA[last.ev] || last.ev;
+      for(var i=STEP.length-1;i>=0;i--){ if(s.has[STEP[i][0]]){ s.reach=i; s.reachJA=STEP[i][1]; break; } }
+      if(s.reach==null){ s.reach=0; s.reachJA=STEP[0][1]; }
+      return s;
+    }).sort(function(a,b){ return b.t0 - a.t0; });
+  }
+
+  /* ---------- 描画 ---------- */
+  function render(){
+    var rs = rows(), ss = sessions(rs);
+    var devices = {}; rs.forEach(function(r){ devices[r.vid]=1; });
+    var tried = ss.filter(function(s){ return s.has.make || s.has.ask0; });
+    var done  = ss.filter(function(s){ return s.has.res; });
+    var saved = ss.filter(function(s){ return s.has.save_do; });
+    var durs  = done.map(function(s){ return s.dur; }).sort(function(a,b){return a-b;});
+    var med   = durs.length ? durs[Math.floor(durs.length/2)] : 0;
+
+    $('upd').textContent = '最終更新 ' + new Date().toTimeString().slice(0,5);
+    $('kpis').innerHTML =
+      tile('端末の数', Object.keys(devices).length, '同じ端末は1と数える') +
+      tile('体験の回数', tried.length, '「つくる」を押した回数') +
+      tile('お菓子が出た', done.length, pct(done.length, tried.length) + ' が到達') +
+      tile('写真に保存', saved.length, pct(saved.length, done.length) + ' が持ち帰り') +
+      tile('かかった時間', med ? (med + '<small>秒</small>') : '—', '結果まで届いた人の中央値');
+
+    /* ファネル */
+    var base = 0, html = '';
+    STEP.forEach(function(st, i){
+      var n = ss.filter(function(s){ return s.has[st[0]]; }).length;
+      if(i===0) base = n || 1;
+      var w = Math.round(n / base * 100);
+      var prevN = i ? ss.filter(function(s){ return s.has[STEP[i-1][0]]; }).length : n;
+      var drop = prevN - n;
+      html += '<div class="fn" title="'+esc(st[1])+'：'+n+'件"><div class="lb">'+esc(st[1])+'</div>'+
+              '<div class="tr"><i style="width:'+w+'%"></i></div>'+
+              '<div class="vv mono">'+n+' <span style="font-weight:400;color:var(--sub)">('+w+'%)</span></div>'+
+              '<div class="dd mono">'+(i && drop>0 ? '−'+drop : '')+'</div></div>';
+    });
+    $('funnel').innerHTML = html;
+
+    /* 時間帯 */
+    var hrs = new Array(24).fill(0);
+    ss.forEach(function(s){ hrs[new Date(s.t0).getHours()]++; });
+    var hmax = Math.max.apply(null, hrs) || 1, peak = hrs.indexOf(hmax);
+    $('hours').innerHTML = hrs.map(function(v,h){
+      return '<div class="c'+(v===hmax&&v>0?' on':'')+'" title="'+h+'時台：'+v+'件">'+
+             '<i style="height:'+Math.round(v/hmax*100)+'%"></i>'+
+             '<b>'+(h%3===0?h:'')+'</b></div>'; }).join('');
+    $('hoursNote').textContent = hmax ? ('いちばん多いのは ' + peak + '時台（' + hmax + '件）') : 'まだありません';
+
+    /* 抜けた場所 */
+    var ex = {};
+    ss.filter(function(s){ return !s.has.end; }).forEach(function(s){ ex[s.exitJA] = (ex[s.exitJA]||0)+1; });
+    $('exits').innerHTML = bars(ex, '最後まで見届けた人しかいません');
+
+    /* 端末 */
+    var kd = {}, seen = {};
+    rs.forEach(function(r){ if(seen[r.vid]) return; seen[r.vid]=1; kd[r.kind||'不明'] = (kd[r.kind||'不明']||0)+1; });
+    $('kinds').innerHTML = bars(kd, 'まだありません');
+
+    /* 答えの偏り */
+    var qa = [[],[],[],[],[]];
+    rs.forEach(function(r){
+      if(r.ev!=='ask') return;
+      var x={}; try{ x=JSON.parse(r.x||'{}'); }catch(_){}
+      if(x.q!=null && x.v!=null && qa[x.q]) qa[x.q].push(+x.v);
+    });
+    $('answers').innerHTML = qa.map(function(a,i){
+      if(!a.length) return '';
+      var c=[0,0,0,0,0,0,0,0,0]; a.forEach(function(v){ if(v>=0&&v<9) c[v]++; });
+      var mx=Math.max.apply(null,c)||1;
+      return '<div style="margin-bottom:10px"><div class="sub" style="margin-bottom:4px">質問'+(i+1)+
+        '<span class="mono" style="margin-left:8px">'+a.length+'件</span></div>'+
+        '<div class="hrs" style="height:44px">'+c.map(function(v,k){
+          return '<div class="c" title="'+(k+1)+'段階目：'+v+'件"><i style="height:'+
+                 Math.round(v/mx*100)+'%"></i></div>'; }).join('')+'</div></div>';
+    }).join('') || '<div class="sub">まだありません</div>';
+
+    /* 個票 */
+    $('sess').innerHTML = ss.slice(0,220).map(function(s,i){
+      var d = new Date(s.t0);
+      return '<tr class="s" data-i="'+i+'">'+
+        '<td class="mono">'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+'</td>'+
+        '<td class="mono">'+esc(String(s.vid).slice(0,6))+'</td>'+
+        '<td><span class="tag">'+(s.mode==='stand'?'会場':'配布')+'</span></td>'+
+        '<td>'+esc(s.reachJA)+'</td>'+
+        '<td class="mono">'+s.dur+'秒</td>'+
+        '<td>'+(s.has.save_do?'<span class="tag ok">保存</span>':
+                s.has.res?'<span class="tag no">なし</span>':'—')+'</td>'+
+        '<td class="mono">'+s.ev.length+'</td></tr>'+
+        '<tr class="tl" id="tl'+i+'" hidden><td colspan="7"><ol>'+
+        s.ev.map(function(e){
+          var t=new Date(e._ms), x=''; try{ var o=JSON.parse(e.x||'{}');
+            x=Object.keys(o).map(function(k){return k+'='+o[k];}).join(' '); }catch(_){}
+          return '<li><span class="mono">'+pad(t.getHours())+':'+pad(t.getMinutes())+':'+pad(t.getSeconds())+
+                 '</span> <b>'+esc(JA[e.ev]||e.ev)+'</b> '+
+                 (e.d? '<span class="mono">（'+Math.round(e.d/1000)+'秒）</span> ':'')+
+                 '<span class="mono" style="opacity:.6">'+esc(x)+'</span></li>';
+        }).join('')+'</ol></td></tr>';
+    }).join('') || '<tr><td colspan="7" class="sub">まだありません</td></tr>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('tr.s'), function(tr){
+      tr.onclick = function(){ var el = $('tl'+tr.dataset.i); if(el) el.hidden = !el.hidden; };
+    });
+
+    $('warn').innerHTML = (!ENDPOINT)
+      ? '<div class="warn"><b>配布用のぶんが入っていません。</b> '+
+        'いま出ているのはこの端末に残っている記録だけです。'+
+        'Apps Script のURLを <span class="mono">cfg.js</span> の '+
+        '<span class="mono">OKB_ENDPOINT</span> に入れると、配ったスマホの動きが集まります。</div>' : '';
+
+    $('foot').innerHTML = '記録しているのは「いつ・どの画面で・何を押したか・そこに何秒いたか」だけです。'+
+      '氏名・メール・位置・広告IDのたぐいは受け取っていません。端末に振っている番号は'+
+      '同じ人を数え直さないためのランダムな文字列で、そこから個人には辿れません。<br>'+
+      '対象：'+(state.date==='today'?'今日':'全期間')+' ／ '+
+      ({all:'配布用＋会場用',phone:'配布用のみ',stand:'会場用のみ'}[state.mode])+
+      ' ／ 記録 '+rs.length+' 件・体験 '+ss.length+' 件';
+  }
+
+  function tile(k, v, n){
+    return '<div class="kpi"><div class="k">'+esc(k)+'</div><div class="v mono">'+v+
+           '</div><div class="n">'+esc(n)+'</div></div>';
+  }
+  function pct(a,b){ return b ? Math.round(a/b*100)+'%' : '—'; }
+  function bars(obj, empty){
+    var ks = Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]; });
+    if(!ks.length) return '<div class="sub">'+esc(empty)+'</div>';
+    var mx = obj[ks[0]] || 1, sum = ks.reduce(function(a,k){ return a+obj[k]; },0);
+    return ks.map(function(k){
+      return '<div class="r" title="'+esc(k)+'：'+obj[k]+'件"><div>'+esc(k)+'</div>'+
+        '<div class="t"><i style="width:'+Math.round(obj[k]/mx*100)+'%"></i></div>'+
+        '<div class="n mono">'+obj[k]+'</div></div>';
+    }).join('') + '<div class="sub" style="margin-top:6px">合計 '+sum+'</div>';
+  }
+
+  /* 切り替え */
+  function wire(id, key){
+    var box = $(id);
+    box.onclick = function(e){
+      var b = e.target.closest('button'); if(!b) return;
+      Array.prototype.forEach.call(box.querySelectorAll('button'), function(x){
+        x.setAttribute('aria-pressed', String(x===b)); });
+      state[key] = b.dataset.v; render();
+    };
+  }
+  wire('fDate','date'); wire('fMode','mode');
+  load();
+  setInterval(load, 120000);   // 2分ごとに取り直す
+})();
+</script>
+</body>
+</html>

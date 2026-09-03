@@ -784,6 +784,7 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
   <div class="next mono">画面をタップして続ける →</div>
 </div></div>
 
+<script src="cfg.js"></script>
 <script src="analytics.js"></script>
 <script src="qr.js"></script>
 <!-- card.js はもう読まない。持ち帰る一枚は card/xxxx.jpg として焼いてあるので、
@@ -3112,9 +3113,9 @@ $('bpGo').onclick=()=>bpOpen();
 $('gQr').onclick=()=>qrOpen();
 $('qrClose').onclick=()=>qrClose();
 $('qrOv').onclick=e=>{ if(e.target===$('qrOv')) qrClose(); };   // 外を触っても閉じる
-$('gSave').onclick=()=>cardOpen();
+$('gSave').onclick=()=>{ LOG('save_open',{id:packItem?packItem.id:''}); cardOpen(); };
 $('cdClose').onclick=()=>cardClose();
-$('cdSave').onclick=()=>cardSave();
+$('cdSave').onclick=()=>{ LOG('save_do',{id:packItem?packItem.id:''}); cardSave(); };
 $('cdOv').onclick=e=>{ if(e.target===$('cdOv')) cardClose(); };
 /* 結果のホームボタン。押した＝最後まで見届けた、として記録する */
 $('qHome').onclick=()=>{ LOG('end',{id:packItem?packItem.id:''}); cardClose(); qrClose(); bpClose(); toFloat(); };
