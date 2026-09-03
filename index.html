@@ -1035,17 +1035,31 @@ function layout(){
     const d=Math.max(gap*0.60, gap-sh*0.5+bh*0.5);          // ボタン⇔隣の列
     mRow=[cy-d-gap, cy-d, cy+d, cy+d+gap];
   }
+  // 見た目の大きさをそろえる。
+  // 幅だけを揃えると、縦長のお菓子は高さが 2.6 倍まで伸びて「1個だけ巨大」になる
+  // （ar は 0.379〜1.672 ＝ 面積で 4.4 倍の差）。面積が等しくなる幅を使い、
+  // そのうえで一番長い辺が base*1.45 を超えないよう頭を抑える。
+  const rowGap = W<820 ? H*0.148 : H*0.205;   // 行と行の間隔
+  const rowW=new Array(ROWS).fill(0);
+  snacks.forEach(s=>{
+    const ar=s.ar||0.8;
+    let w=base*Math.sqrt(ar);                 // 面積をそろえる
+    // 長辺の頭を抑える。行間に収まることを優先し、base より小さくはしない。
+    const cap = Math.max(base*1.02, Math.min(base*1.30, rowGap*0.78));
+    const longest=Math.max(w,w/ar);
+    if(longest>cap) w*=cap/longest;
+    w*=rnd(0.92,1.08);                        // ばらつきは最後に。ここが先だと縦長が全部同じ丈になる
+    s.baseW=w;
+    rowW[s.row]+=w;
+    if(MODE==='FLOAT'){ s.tw=s.baseW; s.talpha=1; s.tdisp=1; }
+  });
   for(let r=0;r<ROWS;r++){
     rowY[r] = W<820 ? mRow[r] : H*(0.155+r*0.205);
     rowDir[r]=r%2?1:-1;
     rowSpeed[r]=(9+r*2.4);
-    // 行ごとの実数で間隔を決める（全行共通の割り算にすると端に1マス分の穴が空く）
-    rowSpan[r]=Math.max(rowCount[r],1)*base*(W<820?2.35:1.85);   // 狭い画面は間隔を広げて重なりを防ぐ
+    // 行の実寸合計から間隔を出す（幅がばらつくので固定値だと詰まる／穴が空く）
+    rowSpan[r]=Math.max(rowW[r],1)*(W<820?2.35:1.85);
   }
-  snacks.forEach(s=>{
-    s.baseW=base*rnd(0.86,1.14);
-    if(MODE==='FLOAT'){ s.tw=s.baseW; s.talpha=1; s.tdisp=1; }
-  });
 }
 
 /* ============================================================
