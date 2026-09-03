@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,viewport-fit=cover,user-scalable=no">
-<title>おかしの設計図 / OKASHI BLUEPRINT</title>
+<title>【スマホ配布】おかしの設計図</title>
 <style>
 :root{
   --ink:#0d1117; --sub:#6b7280; --line:rgba(13,30,60,.14);
@@ -804,6 +804,8 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
     if(qs.get('stand')==='0') localStorage.removeItem('okb_stand');
     window.STAND = localStorage.getItem('okb_stand')==='1';
   }catch(e){ window.STAND = qs.get('stand')==='1'; }
+  // タブが並んだときに何の画面か一目で分かるようにする（先頭に用途を置く）
+  document.title = window.STAND ? '【会場iPad】おかしの設計図' : '【スマホ配布】おかしの設計図';
   document.write('<scr'+'ipt src="'+(window.STAND?'particles.js':'shelf609.js')+'"><\/scr'+'ipt>');
 })();
 </script>

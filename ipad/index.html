@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>【会場iPad】おかしの設計図</title>
+<!-- 会場の台に置くiPad用の入口。
+     .../okashi-blueprint/ipad と打つだけで会場用（?stand=1）に入る。
+     一度ここを通せば、その端末は localStorage に印が残るので、
+     以後はホーム画面のアイコンからでも会場用のまま立ち上がる。 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta http-equiv="refresh" content="0;url=../?stand=1">
+<style>
+html,body{height:100%;margin:0;background:#fff;color:#7b8595;
+  font:400 12px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.3em;
+  display:flex;align-items:center;justify-content:center}
+a{color:#00a2c7}
+</style>
+</head>
+<body>
+<a href="../?stand=1">OKASHI BLUEPRINT — 会場用へ</a>
+<script>location.replace('../?stand=1');</script>
+</body>
+</html>
