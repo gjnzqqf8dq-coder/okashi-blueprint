@@ -554,7 +554,7 @@ html.shortres .qtitle{margin-bottom:52px}
    「押した瞬間にへこむ」返しを持たせる（Purpose と同じ文法。本人の指定） */
 .backlink,.homelink,.qrclose,.cdsave,
 .gres .gsave,.gres .bpgo,.gres .qagain,.gres .qhome{
-  border-radius:999px;position:relative;
+  border-radius:999px;
   -webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);
   border:.5px solid rgba(255,255,255,.9);
   box-shadow:0 1px 1px rgba(255,255,255,.95) inset,
@@ -1700,7 +1700,7 @@ function drawGenerated(dt){
   const topPad = Math.min(W<820 ? 52 : 26, limitY-40);
   /* 絵と文字の比は3:2。文字を詰めた分をそのまま絵に回す。
      0.72/0.42 では絵と文字が1:1に見えていた（本人確認） */
-  const maxW=Math.min(W*(W<820?0.95:0.72), 900), maxH=(limitY-topPad)*0.97;   // 回転と揺れのぶん余らせる
+  const maxW=Math.min(W*(W<820?0.80:0.72), 900), maxH=(limitY-topPad)*(W<820?0.90:0.97);   // 回転と揺れのぶん余らせる。スマホは少し控えめに（本人指摘）
   const ar = (img.naturalWidth||img.width)/(img.naturalHeight||img.height) || 1;
   let w=maxW, h=w/ar; if(h>maxH){ h=maxH; w=h*ar; }
   /* 真ん中に置くと、絵が横長のとき下に大きな穴が空く（実機で指摘）。
