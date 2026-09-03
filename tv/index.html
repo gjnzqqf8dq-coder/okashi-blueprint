@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>【テレビ】おかしの設計図</title>
+<style>
+:root{ --ink:#0d1117; --sub:#7b8595; --line:rgba(13,30,60,.14); --cy:#00a2c7; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+html,body{height:100%;overflow:hidden;background:#fff;cursor:none;
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo","Noto Sans JP",sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased}
+/* 明度と彩度をほんの少しだけ上げる。1枚ずつフィルタを掛けると重いので面ごと */
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;
+  filter:brightness(1.07) contrast(1.05)}
+.hud{position:fixed;z-index:5;font:400 clamp(11px,.72vw,15px)/1 "SF Mono",ui-monospace,"Consolas",monospace;
+  letter-spacing:.24em;color:var(--sub)}
+.hud b{display:block;color:var(--ink);font:800 clamp(14px,.95vw,20px)/1 inherit;letter-spacing:.28em}
+.tl{left:2.3vw;top:3.1vh} .tr{right:2.3vw;top:3.1vh;text-align:right} .bl{left:2.3vw;bottom:3.1vh}
+.line{position:fixed;left:0;right:0;bottom:6.4vh;z-index:5;text-align:center;
+  font-size:clamp(16px,1.55vw,30px);font-weight:700;letter-spacing:.17em;color:var(--ink)}
+.line small{display:block;margin-top:1.15em;
+  font:400 clamp(9px,.72vw,13px)/1 "SF Mono",ui-monospace,"Consolas",monospace;
+  letter-spacing:.34em;color:var(--cy)}
+#boot{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;
+  background:#fff;font:400 12px/1 "SF Mono",ui-monospace,monospace;letter-spacing:.3em;color:var(--sub);
+  transition:opacity 1.1s ease}
+#boot.gone{opacity:0;pointer-events:none}
+#boot.off{display:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud tl"><b>OKASHI BLUEPRINT</b></div>
+<div class="hud tr"><b>おかしの設計図</b></div>
+<div class="hud bl">SCALE 1:100</div>
+<div class="line">手前のiPadに触れると、まだ世界にないお菓子が生まれます。
+  <small id="cap">OKASHI BLUEPRINT</small></div>
+<div id="boot">LOADING</div>
+
+<script src="list.js"></script>
+<script src="dust.js"></script>
+<script>
+/* ============================================================
+   おかしの設計図 — テレビ用の常時再生画面
+   ------------------------------------------------------------
+   作品の待機画面（4列が流れるあれ）を、テレビ単体で回すために
+   作り直したもの。中身が2つ違う。
+
+   1) 流すのは「まだないお菓子」609枚が主で、実在のパッケージ54枚は
+      たまに混ざるだけにしてある（MIX で割合を変えられる）。
+      実在のものだけを延々と映すのは、展示として筋が悪い。
+   2) 1枚ずつ画像を読み、白を透かして被写体の外接矩形まで切り詰めてから
+      流す。元画像はどれも1024角の真ん中に被写体が小さく浮いているので、
+      そのまま出すと遠くから見て何も見えない。
+
+   ずっと流し続ける前提なので、画面に出ている枚数ぶんしか画像を抱えない。
+   1枚が画面の外へ出るたびに、次の1枚を読み込んで入れ替える。
+   ============================================================ */
+
+const MIX = 0.88;            // まだないお菓子を引く確率。残りが実在のパッケージ
+const ROWS = 4;
+
+const C = document.getElementById('c');
+const X = C.getContext('2d', { alpha:false });
+let W=0, H=0, DPR=1, T=0, lastTs=0;
+
+/* ---------- 画像の池 ---------- */
+/* list.js が NEW（まだないお菓子）と OLD（実在）を配ってくる */
+const POOL_NEW = NEW.map((f,i) => ({src:'img/'    + f, b:NEWB[i], p:DUST[i]}));
+const POOL_OLD = OLD.map((f,i) => ({src:'images/' + f, b:OLDB[i], p:DUST[NEW.length+i]}));
+
+/* 粒子を1枚ぶん、描きやすい形にほぐす。
+   毎フレーム 'rgb(...)' を組み立てるのがいちばん重いので、色は先に文字列にしておく。 */
+function prep(p){
+  const n = p ? p.length : 0;
+  const o = {n:n, px:new Float32Array(n), py:new Float32Array(n),
+             pe:new Uint8Array(n), ph:new Float32Array(n), ps:new Float32Array(n), pc:new Array(n)};
+  for(let k=0;k<n;k++){
+    o.px[k]=p[k][0]/1000-0.5; o.py[k]=p[k][1]/1000-0.5;
+    o.pc[k]='rgb('+p[k][2]+','+p[k][3]+','+p[k][4]+')';
+    o.pe[k]=p[k][5];
+    o.ph[k]=Math.random(); o.ps[k]=0.55+Math.random()*1.55;
+  }
+  return o;
+}
+let bag = [];                                   // 出しきるまで同じものを出さない袋
+function refillBag(){
+  bag = POOL_NEW.slice();
+  for(let i=bag.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=bag[i]; bag[i]=bag[j]; bag[j]=t; }
+}
+refillBag();
+function pick(){
+  if(Math.random() > MIX) return POOL_OLD[(Math.random()*POOL_OLD.length)|0];
+  if(!bag.length) refillBag();
+  return bag.pop();
+}
+
+/* 被写体の外接矩形は list.js に持たせてある。
+   file:// で開くとキャンバスが「汚れた」扱いになり getImageData が投げるので、
+   ここでは測らない。測るのは配る前にこちらで済ませてある（画像の幅高に対する割合）。 */
+
+/* ---------- 1枚ぶんの席 ---------- */
+/* 席は流れ続け、画面の外へ出たところで次の1枚と入れ替わる。
+   抱えるのは画面に出ている枚数ぶんだけ。何時間流しても増えない。 */
+class Slot{
+  constructor(row, idx){
+    this.row=row; this.idx=idx;
+    this.img=null; this.box=null; this.ar=1; this.P=null;
+    this.next=null; this.nextBox=null; this.nextP=null; this.loading=false;
+    this.phase=Math.random()*6.283;
+    this.spin=0.7+Math.random()*0.6;
+    this.mul=0.92+Math.random()*0.16;
+    this.alpha=0;
+    this.load(true);
+  }
+  load(first){
+    if(this.loading) return;
+    this.loading=true;
+    const e=pick();
+    const im=new Image();
+    im.decoding='async';
+    im.onload=()=>{
+      // 割合で持っている矩形を、実寸に直す
+      const box={ x:e.b[0]*im.naturalWidth, y:e.b[1]*im.naturalHeight,
+                  w:e.b[2]*im.naturalWidth, h:e.b[3]*im.naturalHeight };
+      if(first){ this.img=im; this.box=box; this.ar=box.w/box.h; this.P=prep(e.p); }
+      else { this.next=im; this.nextBox=box; this.nextP=prep(e.p); }
+      this.loading=false;
+    };
+    im.onerror=()=>{ this.loading=false; setTimeout(()=>this.load(first), 500); };
+    im.src=e.src;
+  }
+  swap(){
+    if(this.next){
+      this.img=this.next; this.box=this.nextBox; this.ar=this.box.w/this.box.h;
+      this.P=this.nextP;
+      this.next=null; this.nextBox=null; this.nextP=null;
+    }
+    this.phase=Math.random()*6.283;
+    this.spin=0.7+Math.random()*0.6;
+    this.mul=0.92+Math.random()*0.16;
+    this.load(false);                 // 次の1周ぶんを先に読んでおく
+  }
+}
+
+let slots=[], rowY=[], rowDir=[], rowSpeed=[], gap=0, base=0, perRow=0;
+function layout(){
+  /* 余白を切り詰めてあるぶん、同じ数字だと大きくなりすぎる。
+     縦長の被写体は高さで頭打ちにしないと、上下の列とぶつかる */
+  base = Math.min(H*0.14, W*0.105);
+  gap  = base*2.0;
+  perRow = Math.ceil(W/gap) + 3;
+  for(let r=0;r<ROWS;r++){
+    rowY[r]  = H*(0.155 + r*0.205);
+    rowDir[r]= r%2 ? 1 : -1;
+    rowSpeed[r]= 9 + r*2.4;
+  }
+  /* 席の数は画面幅で変わる。F11で全画面にすると1列に必要な数が増えるので、
+     初回だけ作って終わりにすると、そのぶん列に穴があく。毎回そろえ直す。 */
+  const have = new Set(slots.map(s => s.row + ':' + s.idx));
+  for(let r=0;r<ROWS;r++)
+    for(let i=0;i<perRow;i++)
+      if(!have.has(r + ':' + i)) slots.push(new Slot(r,i));
+  if(slots.length > ROWS*perRow) slots = slots.filter(s => s.idx < perRow);
+}
+function resize(){
+  W=innerWidth; H=innerHeight; DPR=Math.min(devicePixelRatio||1,1.5);
+  C.width=Math.round(W*DPR); C.height=Math.round(H*DPR);
+  X.setTransform(DPR,0,0,DPR,0,0);
+  /* 縮小の質は 'low' のまま使う。'high' にすると縮小のときに面が平均され、
+     焼き込んである白い穴がぜんぶ均されて「チリチリ」が消え、色まで濁る。
+     会場のiPadも 'low'（既定）で、あの粒立ちはこの粗い縮小があってこそ出る。
+     そのかわり画像は表示寸法に近い大きさまで小さくしてある（img/ は560px）。 */
+  X.imageSmoothingEnabled=true; X.imageSmoothingQuality='low';
+  layout();
+}
+
+/* ---------- 背景（作品と同じ方眼とレティクル） ---------- */
+function drawBG(){
+  X.fillStyle='#ffffff'; X.fillRect(0,0,W,H);
+  X.strokeStyle='rgba(13,40,90,.035)'; X.lineWidth=1;
+  const gs=Math.max(46, Math.round(H/17));
+  X.beginPath();
+  for(let x=gs;x<W;x+=gs){ X.moveTo(x+.5,0); X.lineTo(x+.5,H); }
+  for(let y=gs;y<H;y+=gs){ X.moveTo(0,y+.5); X.lineTo(W,y+.5); }
+  X.stroke();
+  X.strokeStyle='rgba(13,30,60,.22)'; X.lineWidth=1;
+  const m=Math.round(W*0.014), L=Math.round(W*0.0072), b=Math.round(H*0.115);
+  const pts=[[m,m],[W-m,m],[m,H-b],[W-m,H-b],[W/2,m],[W/2,H-b]];
+  X.beginPath();
+  for(const [px,py] of pts){ X.moveTo(px-L,py); X.lineTo(px+L,py); X.moveTo(px,py-L); X.lineTo(px,py+L); }
+  X.stroke();
+}
+
+/* ---------- 空気中の塵 ---------- */
+const NOISE=['#ff4d6d','#00c2e8','#ffd166','#7bdff2','#c77dff'];
+let dust=[];
+function initDust(){
+  dust=[];
+  const n=Math.round(W*H/1400);          // 粒子は多め。画面が白いぶん、これが空気になる
+  for(let i=0;i<n;i++) dust.push({
+    x:Math.random()*W, y:Math.random()*H,
+    vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*8,
+    s:0.7+Math.random()*1.9, ph:Math.random(),
+    c: Math.random()<0.28 ? NOISE[(Math.random()*NOISE.length)|0] : 'rgba(20,40,80,.55)'
+  });
+}
+function drawDust(dt){
+  for(const d of dust){
+    d.x+=d.vx*dt; d.y+=d.vy*dt;
+    if(d.x<0)d.x+=W; if(d.x>W)d.x-=W; if(d.y<0)d.y+=H; if(d.y>H)d.y-=H;
+    const f=(T*5+d.ph*9)%1;
+    const a=f<0.5?0.62:f<0.72?0.28:0;
+    if(a<=0) continue;
+    X.globalAlpha=a; X.fillStyle=d.c;
+    X.fillRect(d.x,d.y,d.s,d.s);
+  }
+  X.globalAlpha=1;
+}
+
+/* ---------- 本体 ---------- */
+function tick(dt){
+  drawBG();
+  drawDust(dt);
+  const span = perRow*gap;
+  for(const s of slots){
+    const dir=rowDir[s.row];
+    let p = (s.idx*gap + T*rowSpeed[s.row]*dir) % span;
+    if(p<0) p+=span;
+    const x = -gap + p*(W+gap*2)/span;
+
+    // 画面の外に出たら次の1枚と入れ替える（1周に1回だけ）
+    const out = (x < -gap*0.5) || (x > W+gap*0.5);
+    if(out){ if(!s.out){ s.out=true; s.swap(); } }
+    else s.out=false;
+
+    if(!s.img){ s.load(true); continue; }   // 空席のままにしない
+    s.alpha = Math.min(1, s.alpha + dt*0.8);
+
+    /* 見た目の大きさをそろえる。会場のiPadと同じ式。
+       幅を揃えると縦長のものだけ巨大になり、高さで頭打ちにすると細長いものだけ
+       小さくなる（ゆき棒が豆粒になっていた）。面積が等しくなる幅を使い、
+       いちばん長い辺だけ行間に収まるよう頭を抑える */
+    let w = base*Math.sqrt(s.ar)*s.mul;
+    const cap = base*1.30;
+    const longest = Math.max(w, w/s.ar);
+    if(longest > cap) w *= cap/longest;
+    const h = w/s.ar;
+    if(x+w < -40 || x-w > W+40) continue;
+    const bob = Math.sin(T*0.9*s.spin + s.phase)*w*0.035;
+    const rot = Math.sin(T*0.62*s.spin + s.phase*1.7)*10*Math.PI/180;
+    X.save();
+    X.translate(x, rowY[s.row]+bob);
+    X.rotate(rot);
+    X.globalAlpha=s.alpha;
+    const b=s.box;
+    X.globalCompositeOperation='multiply';
+    X.drawImage(s.img, b.x, b.y, b.w, b.h, -w/2, -h/2, w, h);
+    X.globalCompositeOperation='source-over';
+
+    /* 粒子。会場のiPadと同じ式で、縁ほど外へ飛び、パラパラと明滅する。
+       これが「チリチリ」の正体で、テレビ用にはこれが無かった。 */
+    const P=s.P;
+    if(P){
+      const sc=w, sch=h;
+      const tf=T*7.5, tt=(T*4)|0, ta=T*0.7, tr=T*1.4;
+      for(let k=0;k<P.n;k++){
+        const ph=P.ph[k];
+        const f=(tf+ph*11)%1;
+        const al = f<0.42?1 : f<0.62?0.42 : f<0.78?0.12 : 0;
+        if(al<=0) continue;
+        const edge=P.pe[k];
+        const spread = edge?1.9:0.55;
+        const ang = ph*6.283+ta;
+        const rr  = (Math.sin(tr+ph*9)*0.5+0.5)*spread + (Math.sin(T*3.1+ph*41)*0.5+0.5)*0.55;
+        const gx = P.px[k]*sc  + Math.cos(ang)*rr*sc*0.055 + Math.sin(T*2.3+ph*17)*sc*0.006;
+        const gy = P.py[k]*sch + Math.sin(ang)*rr*sc*0.055 + Math.cos(T*2.7+ph*29)*sc*0.006;
+        const ss = P.ps[k]*1.25;
+        X.globalAlpha = al*s.alpha*(edge?0.95:0.6);
+        X.fillStyle = ((k*7+tt)%53)===0 ? NOISE[k%5] : P.pc[k];
+        X.fillRect(gx-ss/2, gy-ss/2, ss, ss);
+      }
+    }
+    X.restore();
+  }
+  X.globalCompositeOperation='source-over';
+  X.globalAlpha=1;
+}
+
+/* 非力なPCでも止まらないように、重かったら塵を減らす。
+   お菓子は減らさない。減らすと作品として別のものになる */
+let fps=60, slow=0;
+function frame(ts){
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000, 0.05);
+  lastTs=ts; T+=dt;
+  if(dt>0.0005) fps = fps*0.94 + (1/dt)*0.06;
+  if(fps<26 && dust.length>220){ if(++slow>120){ dust.length=Math.round(dust.length*0.6); slow=0; } }
+  else slow=0;
+  tick(dt);
+  requestAnimationFrame(frame);
+}
+
+addEventListener('resize', ()=>{ resize(); initDust(); });
+document.getElementById('cap').textContent =
+  'OKASHI BLUEPRINT — ' + NEW.length + ' UNBORN / ' + OLD.length + ' EXISTING';
+resize(); initDust();
+requestAnimationFrame(frame);
+// 何枚か揃うまで白のまま待つ。いきなり半分空の棚が出るのを避ける
+(function waitFirst(){
+  const ready = slots.filter(s=>s.img).length;
+  if(ready >= slots.length || performance.now() > 12000){
+    const b=document.getElementById('boot');
+    b.classList.add('gone'); setTimeout(()=>b.classList.add('off'), 1400);
+  }
+  else setTimeout(waitFirst, 200);
+})();
+</script>
+</body>
+</html>

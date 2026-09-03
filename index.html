@@ -324,7 +324,9 @@ body.genmode .hud.tl,body.genmode .hud.bl{display:none}
 .gres .gsave{display:none}
 /* QRの拡大。読み取れるかどうかは面積で決まる */
 .qrov{position:fixed;inset:0;z-index:14;display:none;background:rgba(255,255,255,.97);
-  align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  /* 親の .genui が pointer-events:none。継承で覆いごとタップが死んでいた（実機で「保存もとじるも効かない」）。ここで返す */
+  pointer-events:auto}
 .qrov.on{display:flex}
 .qrin{text-align:center}
 .qrin canvas{width:min(300px,64vw);height:min(300px,64vw);display:block;margin:0 auto 20px;
@@ -561,7 +563,9 @@ html.shortres .qtitle{margin-bottom:52px}
              0 -1px 1px rgba(150,180,225,.26) inset,
              0 12px 30px -18px rgba(13,40,90,.32)}
 .backlink,.homelink,.qrclose,.gres .qagain,.gres .qhome{
-  background:linear-gradient(160deg,rgba(255,255,255,.66) 0%,rgba(238,247,255,.42) 100%)}
+  background:linear-gradient(160deg,rgba(255,255,255,.66) 0%,rgba(238,247,255,.42) 100%);
+  /* 枠まで白だと、iPadの白い余白の上でボタンごと消えて見える。薄い線で縁を返す */
+  border-color:rgba(13,30,60,.22)}
 .gres .gsave,.gres .bpgo{color:#007a95;
   background:linear-gradient(160deg,rgba(214,244,251,.82) 0%,rgba(168,228,244,.58) 100%)}
 .cdsave{color:#fff;border:.5px solid rgba(255,255,255,.55);padding:16px 42px;
@@ -816,7 +820,6 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
 <script src="qr.js"></script>
 <!-- card.js はもう読まない。持ち帰る一枚は card/xxxx.jpg として焼いてあるので、
      この画面で組み立てる必要がなくなった（s.html だけが使う） -->
-<script src="reveal_src.js"></script>
 <script src="picker.js"></script>
 <script src="prompt.js"></script>
 <script>
@@ -1381,7 +1384,29 @@ const PAGES=[
   p:'あまいか、しょっぱいか。五回答えるだけでいい。形は一度も訊かない。味さえ決まれば、大きさも、包みも、そこから決まる。'}
 ];
 let page=0;
+/* ---------- あとから読む重い部品 ----------
+   reveal_src.js（生成演出のクリップ 170KB）と okashi612.json（365KB）は
+   開いた瞬間には要らない。コンセプトが始まってから読む。設問5つのあいだに届く。
+   軽くするのはここまで。画像と見た目には一切触れない。 */
+let _lzRv=null, _lzPk=null;
+function lazyHeavy(){
+  if(!_lzRv){
+    _lzRv=new Promise(res=>{
+      const sc=document.createElement('script');
+      sc.src='reveal_src.js';
+      sc.onload=()=>{ try{ if(typeof REVEAL_SRC!=='undefined') $('rvVid').src=REVEAL_SRC; }catch(e){} res(); };
+      sc.onerror=()=>res();
+      document.head.appendChild(sc);
+    });
+  }
+  if(!_lzPk){
+    _lzPk=fetch('okashi612.json?v=3aa38750bd').then(r=>r.json())
+      .then(j=>{ packPicker=new OkashiPicker(j); RLIB=j.rlib||null; })
+      .catch(e=>{ _lzPk=null; console.error('okashi612.json',e); });
+  }
+}
 function startConcept(){
+  lazyHeavy();
   try{ if(window.OKB) OKB.newSession(); }catch(e){}
   LOG('start');
   MODE='CONCEPT';
@@ -1866,8 +1891,7 @@ let packPicker=null;
 /* レシピの部品庫。設計図を開くまで使わないが、同じ1回の読み込みで受け取る */
 let RLIB=null;
 /* 版番号を付けて読む。付けないとブラウザが古い紹介文を握ったままになる */
-fetch('okashi612.json?v=3aa38750bd').then(r=>r.json()).then(j=>{ packPicker=new OkashiPicker(j); RLIB=j.rlib||null; })
-  .catch(e=>{ console.error('okashi612.json',e); });
+/* 読み込みは lazyHeavy()（コンセプト開始時）に移した。開いた瞬間を軽くするため */
 const aiCache=new Map();
 function gHash(t){ let h=2166136261; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
 function gSeed(){ return gHash(AXES.map(a=>G[a]).join(',')+G.form)%2147483647; }
@@ -3073,6 +3097,7 @@ function orbHide(id){
   setTimeout(()=>{ b.classList.remove('on','go'); },820);
 }
 function startGen(){
+  lazyHeavy();
   MODE='GEN'; document.body.classList.add('genmode');
   $('genui').classList.add('on');
   $('genui').classList.remove('ready');
@@ -3234,14 +3259,23 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') $('btnBack').click(); });
    起動
    ============================================================ */
 function boot(){
-  if(typeof REVEAL_SRC!=='undefined') $('rvVid').src=REVEAL_SRC;
   for(let i=0;i<SHELF.length;i++) snacks.push(new Snack(i));
   resize(); initDust(); 
-  snacks.forEach(s=>{
-    const im=new Image();
-    im.onload=()=>{ s.img=im; loaded++; };
-    im.src=SHELF[s.i].src;
-  });
+  /* 45枚を一斉に投げると回線を取り合って、最初の1枚まで遅くなる。
+     6本ずつ流す。総量は同じで、画面に絵が出はじめるのが早くなる */
+  {
+    const q=snacks.slice();
+    let busy=0;
+    const pump=()=>{
+      while(busy<6 && q.length){
+        const s=q.shift(); busy++;
+        const im=new Image();
+        im.onload=im.onerror=()=>{ if(im.naturalWidth) { s.img=im; loaded++; } busy--; pump(); };
+        im.src=SHELF[s.i].src;
+      }
+    };
+    pump();
+  }
   requestAnimationFrame(frame);
   // 検証用：?m=detail&i=54 / ?m=concept / ?m=gen で初期状態を指定できる
   const qs=new URLSearchParams(location.search);
