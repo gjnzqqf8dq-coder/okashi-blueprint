@@ -549,6 +549,33 @@ html.shortres .qtitle{margin-bottom:52px}
 /* 指を置いているあいだ、押せる場所だとわかるように地を敷く */
 .gres .qagain:active,.gres .qhome:active{background:rgba(13,30,60,.05)}
 
+/* ---------- ボタンだけリキッドグラス ----------
+   面のデザインは変えない。押せるものにだけ、ガラスの厚みと
+   「押した瞬間にへこむ」返しを持たせる（Purpose と同じ文法。本人の指定） */
+.backlink,.homelink,.qrclose,.cdsave,
+.gres .gsave,.gres .bpgo,.gres .qagain,.gres .qhome{
+  border-radius:999px;position:relative;
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);
+  border:.5px solid rgba(255,255,255,.9);
+  box-shadow:0 1px 1px rgba(255,255,255,.95) inset,
+             0 -1px 1px rgba(150,180,225,.26) inset,
+             0 12px 30px -18px rgba(13,40,90,.32)}
+.backlink,.homelink,.qrclose,.gres .qagain,.gres .qhome{
+  background:linear-gradient(160deg,rgba(255,255,255,.66) 0%,rgba(238,247,255,.42) 100%)}
+.gres .gsave,.gres .bpgo{color:#007a95;
+  background:linear-gradient(160deg,rgba(214,244,251,.82) 0%,rgba(168,228,244,.58) 100%)}
+.cdsave{color:#fff;border:.5px solid rgba(255,255,255,.55);padding:16px 42px;
+  background:linear-gradient(160deg,rgba(10,202,238,.94) 0%,rgba(0,158,199,.92) 100%);
+  box-shadow:0 1px 1px rgba(255,255,255,.55) inset,
+             0 -1px 1px rgba(0,90,120,.25) inset,
+             0 14px 30px -14px rgba(0,150,190,.55)}
+.gres .gsave:hover,.gres .bpgo:hover{background:linear-gradient(160deg,rgba(214,244,251,.92),rgba(168,228,244,.72))}
+/* 押した瞬間：即時にへこむ。離すと余韻を残して戻る（純正アプリの返し方） */
+.backlink:active,.homelink:active,.qrclose:active,
+.gres .gsave:active,.gres .bpgo:active,.gres .qagain:active,.gres .qhome:active{
+  opacity:1;transform:scale(.94);filter:brightness(.965);transition-duration:0s}
+.cdsave:active{opacity:1;transform:scale(.94);filter:brightness(1.1);transition-duration:0s}
+
 body.nofx *{transition:none!important}   /* 検証用（?m=…指定時のみ） */
 /* ---------- テレビの比率に合わせる（?fit=169） ----------
    ミラーリングの黒帯は、テレビ側の画面サイズを
@@ -1363,7 +1390,10 @@ function startConcept(){
   snacks.forEach((s,i)=>{
     s.esc=0; s.col=i%2; s.cslot=(i/2)|0;
     s.talpha=0.95; s.tdisp=1.2; s.terode=1.1;
-    s.tw=Math.min(W*0.105,H*0.17);
+    // 大きさは縦幅でそろえる。横幅でそろえると縦長の缶だけが2コマぶんに育って
+    // 列の間隔を食いつぶす（本人の指摘）。高さを固定し、横幅は成り行きに任せる
+    const bh=Math.min(W*0.105,H*0.17)*1.18;
+    s.tw=Math.min(bh*(s.ar||0.8), bh*1.15);
   });
   colCount=Math.ceil(snacks.length/2);
   page=0; setTimeout(showPage,520);
@@ -1491,6 +1521,21 @@ function kinSample(text){
 function kinDraw(dt){
   if(!kinOn) return;
   kinT+=dt;
+  // 見出しの後ろにも、本文と同じ白い靄を敷く（背後のお菓子に字が乗ると読めない。本人の指摘）
+  if(kinText){
+    const lines=kinText.split('\n').length;
+    const cx=kinOx+KC.width/2, cyy=kinOy+lines*kinLh/2;
+    const rx=Math.max(KC.width*0.74+36,80), ry=Math.max(lines*kinLh*0.92+22,60);
+    X.save();
+    X.globalAlpha=Math.min(1,kinT/0.8);
+    X.translate(cx,cyy); X.scale(rx,ry);
+    const bg=X.createRadialGradient(0,0,0,0,0,1);
+    bg.addColorStop(0,'rgba(255,255,255,.94)');
+    bg.addColorStop(.54,'rgba(255,255,255,.86)');
+    bg.addColorStop(1,'rgba(255,255,255,0)');
+    X.fillStyle=bg; X.beginPath(); X.arc(0,0,1,0,6.283); X.fill();
+    X.restore(); X.globalAlpha=1;
+  }
   // 収束しきったら、粒子ではなく黒のベタ文字に置き換える（点々だと読みにくい）
   const solid = Math.max(0, Math.min(1, (kinT-1.15)/0.55));
   if(solid>0){
@@ -2907,6 +2952,9 @@ function qrIsOpen(){ return $('qrOv').classList.contains('on'); }
    必ず <img> へ焼き直してから見せる。
    ============================================================ */
 let cdFor='', cdBlob=null, cdFile=null, cdUrl='';
+/* iOS Safari は touchstart のリスナーが1つも無いと :active を発火しない端末がある。
+   「押しても押した感がない」の正体。空のリスナーを置くだけで直る */
+addEventListener('touchstart', function(){}, {passive:true});
 /* 共有シートが使える端末（Safariなど）では、そこから「画像を保存」に行けると速い。
    押した直後でないと開かない端末があるので、画像は先に取っておく。
    使えない端末では、その画像だけのページへ移る。どちらにしても必ず何かが起きる。 */
@@ -2938,19 +2986,46 @@ function cardShow(){
 }
 function cardSave(){
   if(!cdUrl) return;
+  try{ if(navigator.vibrate) navigator.vibrate(10); }catch(e){}
+  // 押した時点で File がまだ無ければ、blob から作り直してみる（fetch との競争に負けた場合）
+  if(!cdFile && cdBlob){
+    try{ cdFile=new File([cdBlob], 'おかしの設計図_'+cdFor+'.jpg', {type:'image/jpeg'}); }catch(e){}
+  }
   if(canShareCard()){
     $('cdMsg').textContent='「画像を保存」を選んでください。';
     navigator.share({files:[cdFile]})
       .then(()=>{ $('cdMsg').textContent='保存できました。'; })
       .catch(err=>{
         if(err && err.name==='AbortError'){ cardShow(); return; }
-        location.href = cdUrl;                    // 共有が失敗したら画像を開く
+        cardSaveDownload();                       // 共有が失敗したらダウンロードで渡す
       });
     return;
   }
-  /* 共有シートが無い／使えない端末。画像そのものを開く。
-     ただのJPEGなので、どのブラウザでも長押しで「写真に追加」が出る */
-  location.href = cdUrl;
+  if(cdBlob){ cardSaveDownload(); return; }
+  /* まだ画像を取りに行けていない。この場で取り直す。
+     以前はここで location.href に飛ばしていて、押しても「画面が変わるだけで
+     保存できない」ように見えていた（本人の指摘）。画面は動かさない */
+  $('cdMsg').textContent='画像を用意しています…';
+  fetch(cdUrl).then(r=> r.ok ? r.blob() : Promise.reject())
+    .then(b=>{
+      cdBlob=b;
+      try{ cdFile=new File([b], 'おかしの設計図_'+cdFor+'.jpg', {type:'image/jpeg'}); }catch(e){}
+      cardShow();
+      $('cdMsg').textContent='用意できました。もう一度「写真に保存」を押してください。';
+    })
+    .catch(()=>{ $('cdMsg').textContent='画像が読み込めません。上の画像を長押しして「写真に追加」してください。'; });
+}
+/* 共有シートが無い／使えない端末。ダウンロードとして渡す（画面は動かさない） */
+function cardSaveDownload(){
+  try{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(cdBlob);
+    a.download='おかしの設計図_'+cdFor+'.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+    $('cdMsg').textContent='保存しました。見当たらないときは、上の画像を長押しして「写真に追加」。';
+  }catch(e){
+    $('cdMsg').textContent='上の画像を長押しして「写真に追加」を選んでください。';
+  }
 }
 function cardOpen(){
   const it = packItem; if(!it) return;
