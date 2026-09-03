@@ -791,7 +791,21 @@ html.tv .tvline small{display:block;margin-top:1.1em;font:400 clamp(9px,.78vw,13
 <script src="reveal_src.js"></script>
 <script src="picker.js"></script>
 <script src="prompt.js"></script>
-<script src="particles.js"></script>
+<script>
+/* 棚の中身を2種類に分ける。
+   ・配布用（印刷QRから来るスマホ）＝まだ存在しない45点
+   ・会場用（台のiPad）        ＝従来どおり。?stand=1 で切り替え、以後その端末は
+                                  ずっと会場用のまま（?stand=0 で解除）。 */
+(function(){
+  var qs = new URLSearchParams(location.search);
+  try{
+    if(qs.get('stand')==='1') localStorage.setItem('okb_stand','1');
+    if(qs.get('stand')==='0') localStorage.removeItem('okb_stand');
+    window.STAND = localStorage.getItem('okb_stand')==='1';
+  }catch(e){ window.STAND = qs.get('stand')==='1'; }
+  document.write('<scr'+'ipt src="'+(window.STAND?'particles.js':'shelf609.js')+'"><\/scr'+'ipt>');
+})();
+</script>
 <script src="data.js"></script>
 <script>
 /* ============================================================
@@ -856,11 +870,28 @@ function resize(){
 /* ============================================================
    Snack
    ============================================================ */
+/* 棚に並ぶもの。会場用と配布用で中身が違うだけで、以降の扱いは同じ */
+const SHELF = (function(){
+  if(window.STAND && typeof PARTICLE_DATA!=='undefined'){
+    const a=[], n=Math.min(OKASHI.length, PARTICLE_DATA.length);
+    for(let i=0;i<n;i++){
+      if(OKASHI[i].skip) continue;                 // 見た目が同一の重複は出さない
+      const d=OKASHI[i], pd=PARTICLE_DATA[i];
+      a.push({ src:'s-4c1e9b7a/'+String(i+1).padStart(2,'0')+'.jpg', ar:pd.ar, p:pd.p,
+        idx:'NO.'+String(i+1).padStart(2,'0')+' / '+(FORMJA[d.f]||'—'),
+        name:d.name,
+        meta:(d.y? d.y+'年発売 — ':'')+(d.y? (2026-d.y)+'年 愛されている':'発売年 未確認'),
+        rows:AXES.map((x,k)=>[AXJA[k], AXEN[k], d.v[k]]), note:null });
+    }
+    return a;
+  }
+  return (typeof SHELF_NEW!=='undefined') ? SHELF_NEW : [];
+})();
+
 class Snack{
   constructor(i){
-    const d = OKASHI[i] || {name:'—',f:'bag',y:0,v:[50,50,0,0,50,50,50,50,50]};
-    const pd = (typeof PARTICLE_DATA!=='undefined' && PARTICLE_DATA[i]) || null;
-    this.i=i; this.data=d; this.ar = pd? pd.ar : 0.8;
+    const e = SHELF[i] || {ar:0.8,p:[],idx:'—',name:'—',meta:'',rows:[],note:null};
+    this.i=i; this.e=e; this.ar = e.ar || 0.8;
     this.img=null;
     this.x=0; this.y=0; this.w=140; this.baseW=140;
     this.tx=0; this.ty=0; this.tw=140;      // 目標値
@@ -873,7 +904,7 @@ class Snack{
     this.evx=0; this.evy=0;
 
     // 粒子
-    const p = pd? pd.p : [];
+    const p = e.p || [];
     const n = p.length;
     this.n=n;
     this.px=new Float32Array(n); this.py=new Float32Array(n);
@@ -1260,20 +1291,19 @@ function openDetail(s){
   }
   s.tdisp=2.9; s.terode=2.8; s.talpha=1;
   for(const o of snacks) if(o!==s){ o.talpha=.10; o.tdisp=1; o.terode=1; }
-  const d=s.data;
-  $('pIdx').textContent='NO.'+String(s.i+1).padStart(2,'0')+' / '+(FORMJA[d.f]||'—');
-  $('pName').textContent=d.name;
-  const age=d.y? (2026-d.y)+'年 愛されている' : '発売年 未確認';
-  $('pMeta').textContent=(d.y? d.y+'年発売 — ':'')+age;
+  const e=s.e;
+  $('pIdx').textContent=e.idx;
+  $('pName').textContent=e.name;
+  $('pMeta').textContent=e.meta;
   $('pRows').innerHTML='';
-  AXES.forEach((a,k)=>{
-    const v=d.v[k];
+  e.rows.forEach(r=>{
+    const v=r[2];
     const el=document.createElement('div'); el.className='row';
-    el.innerHTML='<div class="l"><span>'+AXJA[k]+' <span class="mono" style="opacity:.5">'+AXEN[k]+'</span></span><b class="mono">'+v+'</b></div><div class="t"><i style="width:0%"></i></div>';
+    el.innerHTML='<div class="l"><span>'+r[0]+' <span class="mono" style="opacity:.5">'+r[1]+'</span></span><b class="mono">'+v+'</b></div><div class="t"><i style="width:0%"></i></div>';
     $('pRows').appendChild(el);
     requestAnimationFrame(()=>{el.querySelector('i').style.width=v+'%';});
   });
-  $('pNote').textContent = '味の数値がそのままこの形の粒子構造を決めている。粒子は画像から実測した'+s.n+'点。';
+  $('pNote').textContent = e.note || ('味の数値がそのままこの形の粒子構造を決めている。粒子は画像から実測した'+s.n+'点。');
   $('cta').style.display='none';   // 札の縁と重なる
   $('panel').classList.add('on');
   $('btnBack').style.display='';
@@ -3113,13 +3143,12 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') $('btnBack').click(); });
    ============================================================ */
 function boot(){
   if(typeof REVEAL_SRC!=='undefined') $('rvVid').src=REVEAL_SRC;
-  const n=Math.min(OKASHI.length, (typeof PARTICLE_DATA!=='undefined'?PARTICLE_DATA.length:54));
-  for(let i=0;i<n;i++) if(!OKASHI[i].skip) snacks.push(new Snack(i));   // 見た目が同一の重複は出さない
+  for(let i=0;i<SHELF.length;i++) snacks.push(new Snack(i));
   resize(); initDust(); 
   snacks.forEach(s=>{
     const im=new Image();
     im.onload=()=>{ s.img=im; loaded++; };
-    im.src='images/'+String(s.i+1).padStart(2,'0')+'.jpg';   // 画像は元の通し番号で引く
+    im.src=SHELF[s.i].src;
   });
   requestAnimationFrame(frame);
   // 検証用：?m=detail&i=54 / ?m=concept / ?m=gen で初期状態を指定できる
