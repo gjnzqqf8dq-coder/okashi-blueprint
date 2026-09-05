@@ -3154,8 +3154,13 @@ function onTap(mx,my){
   if(my>H-96) return;      // 下部のCTA帯は無視
   if(MODE==='DETAIL'){ closeDetail(); return; }
   if(MODE!=='FLOAT') return;
-  for(let i=snacks.length-1;i>=0;i--){
-    if(snacks[i].hit(mx,my)){ openDetail(snacks[i]); return; }
+  /* 会場のiPadは、最初の画面のどこを押しても次へ進む。
+     お菓子を押すと数値の札が開く作りだと、どこを押せば進めるのか分からず
+     止まる人が多い（本人の判断）。札＝DETAILは配布用（スマホ）にだけ残す */
+  if(!window.STAND){
+    for(let i=snacks.length-1;i>=0;i--){
+      if(snacks[i].hit(mx,my)){ openDetail(snacks[i]); return; }
+    }
   }
   startConcept();
 }
